@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="ImageTour.ImageTourPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ImageTour"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:imageTour="using:ImageTourPage"
+    xmlns:controls="using:ImageTourPage.Controls"
+    xmlns:converters="using:CommunityToolkit.WinUI.Converters"
+    mc:Ignorable="d">
+    <Page.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="ms-appx:///Resources/TemplateOverrides.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <converters:BoolToObjectConverter x:Name="IncorrectARConverter" TrueValue="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                                              FalseValue="{ThemeResource TextControlBackground}"/>
+            <converters:BoolToObjectConverter x:Key="TooltipX" TrueValue="Start X" FalseValue="End X"/>
+            <converters:BoolToObjectConverter x:Key="TooltipY" TrueValue="Start Y" FalseValue="End Y"/>
+            <converters:BoolToObjectConverter x:Key="TooltipWidth" TrueValue="Start Width" FalseValue="End Width"/>
+            <converters:BoolToObjectConverter x:Key="TooltipHeight" TrueValue="Start Height" FalseValue="End Height"/>
+            <converters:BoolToObjectConverter x:Key="CloseOrCancelConverter" TrueValue="Close" FalseValue="Cancel"/>
+            <converters:BoolToObjectConverter x:Key="ResumeOrPauseConverter" TrueValue="Resume" FalseValue="Pause"/>
+            <converters:BoolToObjectConverter x:Key="ResumeOrPauseGlyphConverter" TrueValue="&#xE768;" FalseValue="&#xE784;"/>
+            <converters:BoolNegationConverter x:Key="BoolNegationConverter" />
+            <converters:BoolToObjectConverter x:Key="PlayPauseGlyphConverter" TrueValue="&#xF8AE;" FalseValue="&#xF5B0;"/>
+        </ResourceDictionary>
+    </Page.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="500"/>
+        </Grid.ColumnDefinitions>
+        <Grid Name="CanvasContainer" SizeChanged="CanvasContainer_OnSizeChanged" Background="Black">
+            <Canvas x:Name="ContentCanvas" PointerWheelChanged="Canvas_PointerWheelChanged" PointerPressed="Canvas_PointerPressed" PointerMoved="Canvas_PointerMoved"
+                PointerReleased="Canvas_PointerReleased" Background="Black" Grid.RowSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Canvas.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform x:Name="ZoomTransform" ScaleX="1" ScaleY="1"/>
+                        <TranslateTransform x:Name="PanTransform" X="0" Y="0"/>
+                    </TransformGroup>
+                </Canvas.RenderTransform>
+                <Canvas.ContextFlyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem Text="Add keyframe here" Click="CanvasAddKeyFrameClicked"/>
+                        <MenuFlyoutItem Text="Add transition here" Click="CanvasAddTransitionClicked"/>
+                        <MenuFlyoutItem Text="Fit to view" Click="CanvasFitToViewClicked"/>
+                    </MenuFlyout>
+                </Canvas.ContextFlyout>
+                <MediaPlayerElement Name="Video" SizeChanged="Video_OnSizeChanged" Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                <Image Name="Image" ImageOpened="Image_OnImageOpened"
+                       Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}"/>
+            </Canvas>
+        </Grid>
+        <Grid Grid.Row="1" Grid.Column="0" Height="50" Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Button Click="PlayPause" Margin="10,0,0,0">
+                <FontIcon Glyph="{x:Bind viewModel.IsPlaying, Mode=OneWay, Converter={StaticResource PlayPauseGlyphConverter}}"/>
+            </Button>
+            <Slider Grid.Column="1" Name="VideoProgressSlider" VerticalAlignment="Center" Margin="10,0,10,0" ValueChanged="VideoProgressSlider_OnValueChanged"/>
+            <TextBlock Grid.Column="2" Name="VideoTime" VerticalAlignment="Center"/>
+        </Grid>
+        <RelativePanel Visibility="{x:Bind viewModel.BeforeOperation, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}"
+               Grid.Row="2" Grid.Column="0" Padding="10">
+            <TextBlock Name="CurrentTransitionLabel"/>
+            <TextBlock Name="OverallTourProgressText" RelativePanel.AlignHorizontalCenterWith="OverallTourProgress"/>
+            <TextBlock Name="CurrentStatus" RelativePanel.AlignRightWith="OverallTourProgress"/>
+            <ProgressBar Name="OverallTourProgress" RelativePanel.AlignLeftWithPanel="True"
+                RelativePanel.Below="CurrentTransitionLabel" RelativePanel.LeftOf="CancelSplit" Margin="0,4,0,0"/>
+            <Button Name="CancelSplit" RelativePanel.AlignRightWithPanel="True" Margin="10,0,0,0" Width="120" Click="CancelOrClose_OnClick">
+                <FlyoutBase.AttachedFlyout>
+                    <Flyout x:Name="CancelFlyout">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{ThemeResource BaseTextBlockStyle}" VerticalAlignment="Center">Cancel process?</TextBlock>
+                            <Button ToolTipService.ToolTip="Done" Margin="10,0,0,0" Click="CancelProcess">
+                                <FontIcon Glyph="&#xE8FB;" />
+                            </Button>
+                        </StackPanel>
+                    </Flyout>
+                </FlyoutBase.AttachedFlyout>
+                <StackPanel Orientation="Horizontal">
+                    <FontIcon Glyph="&#xE711;" Margin="0,0,10,0" />
+                    <TextBlock VerticalAlignment="Center" Text="{x:Bind viewModel.AfterOperation, Mode=OneWay, Converter={StaticResource CloseOrCancelConverter}}"/>
+                </StackPanel>
+            </Button>
+            <TextBlock Name="CurrentTourProgressText" RelativePanel.Above="CurrentTourProgress" RelativePanel.Below="OverallTourProgress"
+                RelativePanel.AlignHorizontalCenterWith="CurrentTourProgress" Margin="0,30,0,0"/>
+            <ProgressBar Name="CurrentTourProgress" RelativePanel.AlignLeftWithPanel="True"
+                RelativePanel.AlignBottomWithPanel="True" RelativePanel.LeftOf="PauseTour" Margin="0,4,0,0"/>
+            <Button Name="PauseTour" RelativePanel.AlignBottomWithPanel="True" RelativePanel.AlignRightWithPanel="True" Width="120" Margin="10,0,0,0"
+                Click="PauseOrViewTour_OnClick">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" Visibility="{x:Bind viewModel.AfterOperation, Mode=OneWay}">
+                        <FontIcon Glyph="&#xE8A7;" Margin="0,0,10,0" />
+                        <TextBlock VerticalAlignment="Center" Text="View"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Visibility="{x:Bind viewModel.DuringOperation, Mode=OneWay}">
+                        <FontIcon Glyph="{x:Bind viewModel.ProcessPaused, Mode=OneWay, Converter={StaticResource ResumeOrPauseGlyphConverter}}" Margin="0,0,10,0" />
+                        <TextBlock VerticalAlignment="Center" Text="{x:Bind viewModel.ProcessPaused, Mode=OneWay, Converter={StaticResource ResumeOrPauseConverter}}"/>
+                    </StackPanel>
+                </Grid>
+            </Button>
+        </RelativePanel>
+        <Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" Padding="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Name="MediaName" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,10"/>
+            <Button Grid.Row="1" HorizontalAlignment="Center" Click="GoBack">
+                <StackPanel Orientation="Horizontal">
+                    <FontIcon Glyph="&#xE72B;" Margin="0,0,10,0" />
+                    <TextBlock VerticalAlignment="Center">Go back</TextBlock>
+                </StackPanel>
+            </Button>
+            <RelativePanel Grid.Row="2" Margin="0,10">
+                <NumberBox Header="Output Width" Width="140" Name="OutputWidth" SpinButtonPlacementMode="Compact" LargeChange="20"/>
+                <NumberBox Header="Output Height" Width="140" Name="OutputHeight" SpinButtonPlacementMode="Compact" LargeChange="20" RelativePanel.AlignHorizontalCenterWithPanel="True"/>
+                <NumberBox Header="Output Frame Rate" Width="140" Value="24" Name="OutputFrameRate" SpinButtonPlacementMode="Compact" LargeChange="20" RelativePanel.AlignRightWithPanel="True"/>
+            </RelativePanel>
+            <CheckBox Grid.Row="3" Name="LockAspectRatioCheckBox" Content="Lock Aspect Ratio" IsChecked="True" Checked="LockAspectRatioChanged" Unchecked="LockAspectRatioChanged"/>
+            <ListView Grid.Row="4" ItemsSource="{x:Bind transitions}" Margin="0,10" SelectionMode="None">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
+                        <Setter Property="Margin" Value="0,5" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="imageTour:Transition">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.Resources>
+                                <DataTemplate x:Key="FrameRep" x:DataType="imageTour:KeyFrame">
+                                    <Border Width="20" Height="20" BorderBrush="Black" BorderThickness="1" CornerRadius="15" VerticalAlignment="Center"
+                                            Background="{x:Bind Highlighted, Mode=OneWay, Converter={StaticResource HighlightedConverter}}">
+                                        <Border.ContextFlyout>
+                                            <MenuFlyout>
+                                                <ToggleMenuFlyoutItem Text="Highlight" Click="FrameHighlightClicked"/>
+                                                <MenuFlyoutItem Text="Bring to top" Click="FrameBringToTop"/>
+                                                <MenuFlyoutItem Text="Center in view" Click="FrameCenterInViewClicked"/>
+                                            </MenuFlyout>
+                                        </Border.ContextFlyout>
+                                        <TextBlock LineStackingStrategy="BlockLineHeight" LineHeight="16" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"
+                                                   HorizontalAlignment="Center" Text="{x:Bind Number, Mode=OneWay}"/>
+                                    </Border>
+                                </DataTemplate>
+                                <DataTemplate x:Key="FrameData" x:DataType="imageTour:KeyFrame">
+                                    <RelativePanel Height="50" Width="130">
+                                        <NumberBox Value="{x:Bind X, Mode=OneWay}" Style="{StaticResource SmallNumberBox}" ValueChanged="FrameXChanged"
+                                                   ToolTipService.ToolTip="{x:Bind IsStartKeyframe, Converter={StaticResource TooltipX}}"/>
+                                        <NumberBox Value="{x:Bind Y, Mode=OneWay}" Style="{StaticResource SmallNumberBox}" RelativePanel.AlignRightWithPanel="True"
+                                                   ValueChanged="FrameYChanged" ToolTipService.ToolTip="{x:Bind IsStartKeyframe, Converter={StaticResource TooltipY}}"/>
+                                        <NumberBox Value="{x:Bind Width, Mode=OneWay}" Style="{StaticResource SmallNumberBox}" ValueChanged="FrameWidthChanged"
+                                                   Background="{x:Bind IncorrectAspectRatio, Mode=OneWay, Converter={StaticResource IncorrectARConverter}}"
+                                                   RelativePanel.AlignBottomWithPanel="True"
+                                                   ToolTipService.ToolTip="{x:Bind IsStartKeyframe, Converter={StaticResource TooltipWidth}}"/>
+                                        <NumberBox Value="{x:Bind Height, Mode=OneWay}" Style="{StaticResource SmallNumberBox}" ValueChanged="FrameHeightChanged"
+                                                   Background="{x:Bind IncorrectAspectRatio, Mode=OneWay, Converter={StaticResource IncorrectARConverter}}"
+                                                   RelativePanel.AlignRightWithPanel="True" RelativePanel.AlignBottomWithPanel="True"
+                                                   ToolTipService.ToolTip="{x:Bind IsStartKeyframe, Converter={StaticResource TooltipHeight}}"/>
+                                    </RelativePanel>
+                                </DataTemplate>
+                            </Grid.Resources>
+                            <ContentPresenter ContentTemplate="{StaticResource FrameRep}" Content="{x:Bind StartKeyFrame, Mode=OneWay}" Margin="0,0,5,0"/>
+                            <ContentPresenter Grid.Column="1" ContentTemplate="{StaticResource FrameData}" Content="{x:Bind StartKeyFrame, Mode=OneWay}"/>
+                            <controls:TimespanTextBox Grid.Column="2" Value="{x:Bind Duration, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                                      ToolTipService.ToolTip="Duration"/>
+                            <ContentPresenter Grid.Column="3" ContentTemplate="{StaticResource FrameData}" Content="{x:Bind EndKeyFrame, Mode=OneWay}"/>
+                            <ContentPresenter Grid.Column="4" ContentTemplate="{StaticResource FrameRep}" Content="{x:Bind EndKeyFrame, Mode=OneWay}" Margin="5,0,0,0"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <CheckBox Grid.Row="5" Name="DontDeleteFrames" Content="Don't delete generated frames" Margin="0,0,0,5"/>
+            <Button Grid.Row="6" HorizontalAlignment="Stretch" Style="{StaticResource AccentButtonStyle}" Click="ProcessTour"
+                    IsEnabled="{x:Bind viewModel.DuringOperation, Mode=OneWay, Converter={StaticResource BoolNegationConverter}}">
+                <Grid>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Viewbox MaxWidth="30">
+                            <FontIcon Glyph="&#xF57D;" />
+                        </Viewbox>
+                        <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" HorizontalTextAlignment="Center">Tour!</TextBlock>
+                    </StackPanel>
+                </Grid>
+            </Button>
+            <ContentDialog Name="ErrorDialog" IsPrimaryButtonEnabled="True" PrimaryButtonText="Ok"/>
+        </Grid>
+    </Grid>
+</Page>

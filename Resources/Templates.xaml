@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:imageTourPage="using:ImageTourPage"
+    xmlns:converters="using:CommunityToolkit.WinUI.Converters"
+    xmlns:imageTour="using:ImageTour"
+    xmlns:sys="using:System"
+    x:Class="ImageTour.Resources.Templates">
+
+    <x:Double x:Key="AutoWidthValue">NaN</x:Double>
+    <converters:BoolToObjectConverter x:Name="LabelWidthConverter" TrueValue="{StaticResource AutoWidthValue}" FalseValue="30"/>
+    <converters:BoolToObjectConverter x:Name="LabelPaddingConverter" TrueValue="5,0,5,0" FalseValue="0"/>
+    <converters:BoolToObjectConverter x:Name="HighlightedConverter" TrueValue="DeepSkyBlue" FalseValue="White"/>
+    <converters:BoolToVisibilityConverter x:Name="BoolToVisibilityConverter"/>
+
+    <DataTemplate x:Name="KeyFrameTemplate" x:DataType="imageTourPage:KeyFrameLabel">
+        <RelativePanel BorderBrush="{x:Bind Highlighted, Mode=OneWay, Converter={StaticResource HighlightedConverter}}" BorderThickness="2" Background="Transparent">
+            <RelativePanel.ContextFlyout>
+                <MenuFlyout x:Name="MenuFlyout"/>
+            </RelativePanel.ContextFlyout>
+            <Grid BorderBrush="Black" BorderThickness="1" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignTopWithPanel="True"
+                  RelativePanel.AlignRightWithPanel="True" RelativePanel.AlignBottomWithPanel="True">
+            </Grid>
+            <ContentPresenter ContentTemplate="{StaticResource KeyFrameLabelTemplate}" Margin="8"
+                              Visibility="{x:Bind PartOfClump, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}"/>
+
+            <!--<Rectangle Width="40" Height="3" Fill="White" RelativePanel.AlignTopWithPanel="True" RelativePanel.AlignHorizontalCenterWithPanel="True"></Rectangle>
+            <Rectangle Width="40" Height="3" Fill="White" RelativePanel.AlignBottomWithPanel="True" RelativePanel.AlignHorizontalCenterWithPanel="True"></Rectangle>
+            <Rectangle Height="40" Width="3" Fill="White" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignVerticalCenterWithPanel="True"></Rectangle>
+            <Rectangle Height="40" Width="3" Fill="White" RelativePanel.AlignRightWithPanel="True" RelativePanel.AlignVerticalCenterWithPanel="True"></Rectangle>
+            <Path Data="M0,0 L0,30 L3,30 L3,3 L30,3 L30,0 Z" Fill="White"></Path>
+            <Path Data="M30,0 L30,30 L27,30 L27,3 L0,3 L0,0 Z" Fill="White" RelativePanel.AlignRightWithPanel="True"></Path>
+            <Path Data="M0,30 L0,0 L3,0 L3,27 L30,27 L30,30 Z" Fill="White" RelativePanel.AlignBottomWithPanel="True"></Path>
+            <Path Data="M30,30 L30,0 L27,0 L27,27 L0,27 L0,30 Z" Fill="White" RelativePanel.AlignBottomWithPanel="True" RelativePanel.AlignRightWithPanel="True"></Path>-->
+        </RelativePanel>
+    </DataTemplate>
+
+    <DataTemplate x:Name="MultiKeyFrameLabelTemplate">
+        <GridView ItemTemplate="{StaticResource KeyFrameLabelTemplate}" Margin="11">
+            <GridView.ItemContainerStyle>
+                <Style TargetType="GridViewItem" BasedOn="{StaticResource DefaultGridViewItemStyle}">
+                    <Setter Property="Margin" Value="0,0,4,0"/>
+                    <Setter Property="MinHeight" Value="0"/>
+                    <Setter Property="MinWidth" Value="0"/>
+                </Style>
+            </GridView.ItemContainerStyle>
+            <GridView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal"/>
+                </ItemsPanelTemplate>
+            </GridView.ItemsPanel>
+        </GridView>
+    </DataTemplate>
+
+    <DataTemplate x:Name="KeyFrameLabelTemplate" x:DataType="imageTourPage:KeyFrameLabel">
+        <Grid
+            Height="30"
+            RelativePanel.AlignLeftWithPanel="True"
+            RelativePanel.AlignTopWithPanel="True">
+            <Border
+                Width="{x:Bind HoldsTwo, Mode=OneWay, Converter={StaticResource LabelWidthConverter}}"
+                Padding="{x:Bind HoldsTwo, Mode=OneWay, Converter={StaticResource LabelPaddingConverter}}"
+                Background="{x:Bind Highlighted, Mode=OneWay, Converter={StaticResource HighlightedConverter}}"
+                BorderBrush="Black"
+                CornerRadius="15"
+                VerticalAlignment="Stretch"
+                HorizontalAlignment="Right">
+                <TextBlock
+                    Text="{x:Bind LabelDisplay, Mode=OneWay}"
+                    LineStackingStrategy="BlockLineHeight"
+                    LineHeight="24"
+                    Foreground="Black"
+                    FontWeight="Bold"
+                    FontSize="22"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"/>
+            </Border>
+        </Grid>
+    </DataTemplate>
+</ResourceDictionary>
