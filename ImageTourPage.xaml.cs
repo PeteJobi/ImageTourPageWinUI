@@ -536,12 +536,24 @@ namespace ImageTour
 
             if (props.KeyFrame.Width != (int)OutputWidth.Value || props.KeyFrame.Height != (int)OutputHeight.Value)
             {
-                menuFlyout.Items.Add(CreateFlyoutItem("Set to output size", () =>
+                menuFlyout.Items.Add(new MenuFlyoutSubItem
                 {
+                    Text = "Output size",
+                    Items =
+                    {
+                        CreateFlyoutItem("Set this to output size", () =>
+                        {
                     resizer.ResizeElement(keyframeElement, (int)OutputWidth.Value, (int)OutputHeight.Value, parameters: GetAspectRatioParam(false));
                     UpdateAnimLinesAndCoords(keyframeElement);
                     CheckAspectRatio(keyframeElement);
-                }));
+                        }),
+                        CreateFlyoutItem("Set output size to this", () =>
+                        {
+                            OutputWidth.Value = props.KeyFrame.Width;
+                            OutputHeight.Value = props.KeyFrame.Height;
+                        })
+                    }
+                });
             }
 
             if (props.KeyFrameLabel.HoldsTwo)
