@@ -1081,6 +1081,14 @@ namespace ImageTour
             if (navigateTo == null) Frame.GoBack();
             else Frame.NavigateToType(Type.GetType(navigateTo), outputFile, new FrameNavigationOptions { IsNavigationStackEnabled = false });
         }
+
+        private void OutputSizeChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        {
+            foreach (var keyframeElement in frameProps.Keys)
+            {
+                CheckAspectRatio(keyframeElement);
+            }
+    }
     }
 
     class AnimLines

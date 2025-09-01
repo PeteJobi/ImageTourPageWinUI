@@ -131,8 +131,8 @@
                 </StackPanel>
             </Button>
             <RelativePanel Grid.Row="2" Margin="0,10">
-                <NumberBox Header="Output Width" Width="140" Name="OutputWidth" SpinButtonPlacementMode="Compact" LargeChange="20"/>
-                <NumberBox Header="Output Height" Width="140" Name="OutputHeight" SpinButtonPlacementMode="Compact" LargeChange="20" RelativePanel.AlignHorizontalCenterWithPanel="True"/>
+                <NumberBox Header="Output Width" Width="140" Name="OutputWidth" ValueChanged="OutputSizeChanged" SpinButtonPlacementMode="Compact" LargeChange="20"/>
+                <NumberBox Header="Output Height" Width="140" Name="OutputHeight" ValueChanged="OutputSizeChanged" SpinButtonPlacementMode="Compact" LargeChange="20" RelativePanel.AlignHorizontalCenterWithPanel="True"/>
                 <NumberBox Header="Output Frame Rate" Width="140" Value="24" Name="OutputFrameRate" SpinButtonPlacementMode="Compact" LargeChange="20" RelativePanel.AlignRightWithPanel="True"/>
             </RelativePanel>
             <CheckBox Grid.Row="3" Name="LockAspectRatioCheckBox" Content="Lock Aspect Ratio" IsChecked="True" Checked="LockAspectRatioChanged" Unchecked="LockAspectRatioChanged"/>
