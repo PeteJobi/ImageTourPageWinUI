@@ -158,9 +158,10 @@
                                             Background="{x:Bind Highlighted, Mode=OneWay, Converter={StaticResource HighlightedConverter}}">
                                         <Border.ContextFlyout>
                                             <MenuFlyout>
-                                                <ToggleMenuFlyoutItem Text="Highlight" Click="FrameHighlightClicked"/>
                                                 <MenuFlyoutItem Text="Bring to top" Click="FrameBringToTop"/>
                                                 <MenuFlyoutItem Text="Center in view" Click="FrameCenterInViewClicked"/>
+                                                <ToggleMenuFlyoutItem Text="Highlight" Click="FrameHighlightClicked"/>
+                                                <ToggleMenuFlyoutItem Text="Hide" Click="FrameHideClicked"/>
                                             </MenuFlyout>
                                         </Border.ContextFlyout>
                                         <TextBlock LineStackingStrategy="BlockLineHeight" LineHeight="16" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"

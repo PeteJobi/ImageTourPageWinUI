@@ -543,9 +543,9 @@ namespace ImageTour
                     {
                         CreateFlyoutItem("Set this to output size", () =>
                         {
-                    resizer.ResizeElement(keyframeElement, (int)OutputWidth.Value, (int)OutputHeight.Value, parameters: GetAspectRatioParam(false));
-                    UpdateAnimLinesAndCoords(keyframeElement);
-                    CheckAspectRatio(keyframeElement);
+                            resizer.ResizeElement(keyframeElement, (int)OutputWidth.Value, (int)OutputHeight.Value, parameters: GetAspectRatioParam(false));
+                            UpdateAnimLinesAndCoords(keyframeElement);
+                            CheckAspectRatio(keyframeElement);
                         }),
                         CreateFlyoutItem("Set output size to this", () =>
                         {
@@ -915,6 +915,25 @@ namespace ImageTour
             }
         }
 
+        private void FrameHideClicked(object sender, RoutedEventArgs e)
+        {
+            var menuItem = (ToggleMenuFlyoutItem)sender;
+            var keyframe = (KeyFrame)menuItem.DataContext;
+            var keyframeElement = keyFrameToElement[keyframe];
+            var props = frameProps[keyframeElement];
+            if (!menuItem.IsChecked)
+            {
+                resizer.SetElementZIndex(keyframeElement, frameProps[keyframeElement].zIndexBeforeHide);
+                props.KeyFrameLabel.Hidden = false;
+            }
+            else
+            {
+                props.zIndexBeforeHide = resizer.GetElementZIndex(keyframeElement);
+                props.KeyFrameLabel.Hidden = true;
+                resizer.SetElementZIndex(keyframeElement, -1); // Behind media element
+            }
+        }
+
         private void FrameXChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
         {
             if (userIsHandlingFrames || double.IsNaN(args.OldValue)) return;
@@ -1100,7 +1119,7 @@ namespace ImageTour
             {
                 CheckAspectRatio(keyframeElement);
             }
-    }
+        }
     }
 
     class AnimLines
@@ -1118,6 +1137,7 @@ namespace ImageTour
         public KeyFrame KeyFrame { get; set; }
         public KeyFrame? KeyFrame2 { get; set; }
         public GridView? ClumpGridView { get; set; }
+        public int zIndexBeforeHide { get; set; }
     }
 
     public class TourProps

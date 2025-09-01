@@ -24,15 +24,6 @@
             </Grid>
             <ContentPresenter ContentTemplate="{StaticResource KeyFrameLabelTemplate}" Margin="8"
                               Visibility="{x:Bind PartOfClump, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}"/>
-
-            <!--<Rectangle Width="40" Height="3" Fill="White" RelativePanel.AlignTopWithPanel="True" RelativePanel.AlignHorizontalCenterWithPanel="True"></Rectangle>
-            <Rectangle Width="40" Height="3" Fill="White" RelativePanel.AlignBottomWithPanel="True" RelativePanel.AlignHorizontalCenterWithPanel="True"></Rectangle>
-            <Rectangle Height="40" Width="3" Fill="White" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignVerticalCenterWithPanel="True"></Rectangle>
-            <Rectangle Height="40" Width="3" Fill="White" RelativePanel.AlignRightWithPanel="True" RelativePanel.AlignVerticalCenterWithPanel="True"></Rectangle>
-            <Path Data="M0,0 L0,30 L3,30 L3,3 L30,3 L30,0 Z" Fill="White"></Path>
-            <Path Data="M30,0 L30,30 L27,30 L27,3 L0,3 L0,0 Z" Fill="White" RelativePanel.AlignRightWithPanel="True"></Path>
-            <Path Data="M0,30 L0,0 L3,0 L3,27 L30,27 L30,30 Z" Fill="White" RelativePanel.AlignBottomWithPanel="True"></Path>
-            <Path Data="M30,30 L30,0 L27,0 L27,27 L0,27 L0,30 Z" Fill="White" RelativePanel.AlignBottomWithPanel="True" RelativePanel.AlignRightWithPanel="True"></Path>-->
         </RelativePanel>
     </DataTemplate>
 
@@ -57,7 +48,8 @@
         <Grid
             Height="30"
             RelativePanel.AlignLeftWithPanel="True"
-            RelativePanel.AlignTopWithPanel="True">
+            RelativePanel.AlignTopWithPanel="True"
+            Visibility="{x:Bind Hidden, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}">
             <Border
                 Width="{x:Bind HoldsTwo, Mode=OneWay, Converter={StaticResource LabelWidthConverter}}"
                 Padding="{x:Bind HoldsTwo, Mode=OneWay, Converter={StaticResource LabelPaddingConverter}}"

@@ -175,6 +175,12 @@ namespace ImageTourPage
             get => _highlighted;
             set => SetProperty(ref _highlighted, value);
         }
+        private bool _hidden;
+        public bool Hidden
+        {
+            get => _hidden;
+            set => SetProperty(ref _hidden, value);
+        }
 
         public string LabelDisplay => HoldsTwo ? $"{Number},{Number + 1}" : Number.ToString();
 
