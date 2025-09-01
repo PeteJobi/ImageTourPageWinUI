@@ -14,7 +14,6 @@ using Microsoft.UI.Xaml.Shapes;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
@@ -212,6 +211,7 @@ namespace ImageTour
             {
                 DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Normal, () =>
                 {
+                    if (prop.ClumpGridView == null) return;
                     var clumpLabels = (ObservableCollection<KeyFrameLabel>)prop.ClumpGridView!.ItemsSource;
                     clumpLabels.Remove(prop.KeyFrameLabel);
                     prop.KeyFrameLabel.PartOfClump = false;
@@ -454,6 +454,8 @@ namespace ImageTour
             keyFrameToElement[transition.StartKeyFrame] = keyFrameElement1;
             keyFrameToElement[transition.EndKeyFrame] = keyFrameElement2;
             transitions.Add(transition);
+            CheckClumps(keyFrameElement1);
+            CheckClumps(keyFrameElement2);
         }
 
         private FrameworkElement AddNewKeyFrameElement(int x, int y, int width, int height)
@@ -469,6 +471,37 @@ namespace ImageTour
             resizer.InitDraggerResizer(keyFrameElement, default(HashSet<Orientation>),
                 GetAspectRatioParam(LockAspectRatioCheckBox.IsChecked ?? false), GetNewHandlingCallback(keyFrameElement));
             return keyFrameElement;
+        }
+
+        private void AddNewKeyframeFully(int x, int y, int width, int height)
+        {
+            var lastKeyFrame = transitions.Last().EndKeyFrame;
+            var startFrame = new KeyFrame(lastKeyFrame.X, lastKeyFrame.Y, lastKeyFrame.Width, lastKeyFrame.Height, lastKeyFrame.Number + 1);
+            var startKeyFrameElement = keyFrameToElement[lastKeyFrame];
+            var lastKeyFrameProps = frameProps[startKeyFrameElement];
+            lastKeyFrameProps.KeyFrameLabel.HoldsTwo = true;
+            lastKeyFrameProps.KeyFrame2 = startFrame;
+            keyFrameToElement.Add(startFrame, startKeyFrameElement);
+            var endKeyFrameElement = AddNewKeyFrameElement(startFrame.X, startFrame.Y, width, height);// Add it at startFrame position...
+            resizer.PositionElement(endKeyFrameElement, x, y);// ...then move it to intended position to keep it in bounds
+            var endFrame = new KeyFrame((int)resizer.GetElementLeft(endKeyFrameElement), (int)resizer.GetElementTop(endKeyFrameElement),
+                startFrame.Width, startFrame.Height, lastKeyFrame.Number + 2);
+            keyFrameToElement.Add(endFrame, endKeyFrameElement);
+            var endKeyFrameProps = new KeyFrameProps
+            {
+                KeyFrameLabel = new KeyFrameLabel(endFrame.Number),
+                KeyFrame = endFrame,
+            };
+            endKeyFrameElement.DataContext = endKeyFrameProps.KeyFrameLabel;
+            frameProps.Add(endKeyFrameElement, endKeyFrameProps);
+            LinkKeyFrameElements(startKeyFrameElement, lastKeyFrameProps, endKeyFrameElement, endKeyFrameProps);
+            transitions.Add(new Transition
+            {
+                StartKeyFrame = startFrame,
+                EndKeyFrame = endFrame,
+                Duration = TimeSpan.FromSeconds(defaultDurationInSeconds)
+            });
+            CheckClumps(endKeyFrameElement);
         }
 
         private void KeyFrameMenuFlyoutOnOpening(FrameworkElement keyframeElement, MenuFlyout menuFlyout)
@@ -602,6 +635,22 @@ namespace ImageTour
                     UpdateAnimLinesAndCoords(kvpToMergeWith.Key);
                 }));
             }
+
+            menuFlyout.Items.Add(new MenuFlyoutSubItem
+            {
+                Text = "Add here",
+                Items =
+                {
+                    CreateFlyoutItem("New keyframe", () =>
+                    {
+                        AddNewKeyframeFully(props.KeyFrame.X, props.KeyFrame.Y, props.KeyFrame.Width, props.KeyFrame.Height);
+                    }),
+                    CreateFlyoutItem("New transition", () =>
+                    {
+                        AddTransitionKeyFrames(props.KeyFrame.X, props.KeyFrame.Y, props.KeyFrame.Width, props.KeyFrame.Height);
+                    })
+                }
+            });
 
             if (transitions.Count > 1)
             {
@@ -822,42 +871,18 @@ namespace ImageTour
             return multiKeyFrameLabel;
         }
 
-        private void CanvasAddKeyFrameClicked(object sender, RoutedEventArgs e)
-        {
-            var lastKeyFrame = transitions.Last().EndKeyFrame;
-            var startFrame = new KeyFrame(lastKeyFrame.X, lastKeyFrame.Y, lastKeyFrame.Width, lastKeyFrame.Height, lastKeyFrame.Number + 1);
-            var startKeyFrameElement = keyFrameToElement[lastKeyFrame];
-            var lastKeyFrameProps = frameProps[startKeyFrameElement];
-            lastKeyFrameProps.KeyFrameLabel.HoldsTwo = true;
-            lastKeyFrameProps.KeyFrame2 = startFrame;
-            keyFrameToElement.Add(startFrame, startKeyFrameElement);
-            var endKeyFrameElement = AddNewKeyFrameElement(startFrame.X, startFrame.Y, startFrame.Width, startFrame.Height);// Add it at startFrame position...
-            resizer.PositionElement(endKeyFrameElement, _lastCanvasPressedPoint.X, _lastCanvasPressedPoint.Y);// ...then move it to intended position to keep it in bounds
-            var endFrame = new KeyFrame((int)resizer.GetElementLeft(endKeyFrameElement), (int)resizer.GetElementTop(endKeyFrameElement),
-                startFrame.Width, startFrame.Height, lastKeyFrame.Number + 2);
-            keyFrameToElement.Add(endFrame, endKeyFrameElement);
-            var endKeyFrameProps = new KeyFrameProps
-            {
-                KeyFrameLabel = new KeyFrameLabel(endFrame.Number),
-                KeyFrame = endFrame,
-            };
-            endKeyFrameElement.DataContext = endKeyFrameProps.KeyFrameLabel;
-            frameProps.Add(endKeyFrameElement, endKeyFrameProps);
-            LinkKeyFrameElements(startKeyFrameElement, lastKeyFrameProps, endKeyFrameElement, endKeyFrameProps);
-            transitions.Add(new Transition
-            {
-                StartKeyFrame = startFrame,
-                EndKeyFrame = endFrame,
-                Duration = TimeSpan.FromSeconds(defaultDurationInSeconds)
-            });
-        }
-
         private void CanvasContainer_OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
             CanvasContainer.Clip = new RectangleGeometry
             {
                 Rect = new Rect(0, 0, CanvasContainer.ActualWidth, CanvasContainer.ActualHeight)
             };
+        }
+
+        private void CanvasAddKeyFrameClicked(object sender, RoutedEventArgs e)
+        {
+            var lastKeyFrame = transitions.Last().EndKeyFrame;
+            AddNewKeyframeFully((int)_lastCanvasPressedPoint.X, (int)_lastCanvasPressedPoint.Y, lastKeyFrame.Width, lastKeyFrame.Height);
         }
 
         private void CanvasAddTransitionClicked(object sender, RoutedEventArgs e)
