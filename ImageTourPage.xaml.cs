@@ -468,7 +468,9 @@ namespace ImageTour
             keyFrameElement.Height = height;
             var menuFlyout = (MenuFlyout)keyFrameElement.FindName("MenuFlyout");
             menuFlyout.Opening += (sender, o) => KeyFrameMenuFlyoutOnOpening(keyFrameElement, (MenuFlyout)sender);
-            resizer.InitDraggerResizer(keyFrameElement, default(HashSet<Orientation>),
+            var orientations = Enum.GetValues<Orientation>().Append(Orientation.Horizontal | Orientation.Vertical)
+                .ToDictionary(o => o, o => new Appearance { HandleThickness = 20 });
+            resizer.InitDraggerResizer(keyFrameElement, orientations,
                 GetAspectRatioParam(LockAspectRatioCheckBox.IsChecked ?? false), GetNewHandlingCallback(keyFrameElement));
             return keyFrameElement;
         }
@@ -557,14 +559,14 @@ namespace ImageTour
             if (framesNotInSameClump.Count > 0)
             {
                 menuFlyout.Items.Add(CreateFlyoutSubItems("Copy frame position", PopulatePosSwapSubItems(false)));
-                menuFlyout.Items.Add(CreateFlyoutSubItems("Swap position with frame", PopulatePosSwapSubItems(true)));
+                menuFlyout.Items.Add(CreateFlyoutSubItems("Swap frame position", PopulatePosSwapSubItems(true)));
             }
             
             var framesNotSameSize = GetFramesNotSameSize().ToList();
             if (framesNotSameSize.Count > 0)
             {
                 menuFlyout.Items.Add(CreateFlyoutSubItems("Copy frame size", PopulateSizeSwapSubItems(false)));
-                menuFlyout.Items.Add(CreateFlyoutSubItems("Swap size with frame", PopulateSizeSwapSubItems(true)));
+                menuFlyout.Items.Add(CreateFlyoutSubItems("Swap frame size", PopulateSizeSwapSubItems(true)));
             }
 
             if (props.KeyFrame.Width != (int)OutputWidth.Value || props.KeyFrame.Height != (int)OutputHeight.Value)
@@ -925,7 +927,7 @@ namespace ImageTour
         {
             var menuItem = (MenuFlyoutItem)sender;
             var keyframe = (KeyFrame)menuItem.DataContext;
-            const int margin = 100;
+            const int margin = 20;
             if (CanvasContainer.ActualWidth / CanvasContainer.ActualHeight < (double)keyframe.Width / keyframe.Height)
             {
                 ZoomTransform.ScaleX = ZoomTransform.ScaleY = CanvasContainer.ActualWidth / (keyframe.Width + margin * 2);
