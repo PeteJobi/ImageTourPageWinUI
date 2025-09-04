@@ -46,28 +46,28 @@ namespace ImageTourPage
             return true;
         }
     }
-    public class KeyFrame(int x, int y, int width, int height, int number) : INotifyPropertyChanged
+    public class KeyFrame(double x, double y, double width, double height, int number) : INotifyPropertyChanged
     {
-        private int _x = x;
-        public int X
+        private double _x = x;
+        public double X
         {
             get => _x;
             set => SetProperty(ref _x, value);
         }
-        private int _y = y;
-        public int Y
+        private double _y = y;
+        public double Y
         {
             get => _y;
             set => SetProperty(ref _y, value);
         }
-        private int _width = width;
-        public int Width
+        private double _width = width;
+        public double Width
         {
             get => _width;
             set => SetProperty(ref _width, value);
         }
-        private int _height = height;
-        public int Height
+        private double _height = height;
+        public double Height
         {
             get => _height;
             set => SetProperty(ref _height, value);

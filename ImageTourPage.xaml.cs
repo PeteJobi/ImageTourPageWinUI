@@ -19,6 +19,7 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Globalization.NumberFormatting;
 using Windows.Media;
 using Windows.Media.Core;
 using Windows.Media.Playback;
@@ -192,8 +193,7 @@ namespace ImageTour
                 DragStarted = () => userIsHandlingFrames = true,
                 ResizeStarted = _ => userIsHandlingFrames = true,
                 BeforeDragging = point => new Point(point.X / ZoomTransform.ScaleX, point.Y / ZoomTransform.ScaleY),
-                BeforeResizing =
-                    (point, _) => new Point(point.X / ZoomTransform.ScaleX, point.Y / ZoomTransform.ScaleY),
+                BeforeResizing = (point, _) => new Point(point.X / ZoomTransform.ScaleX, point.Y / ZoomTransform.ScaleY),
                 AfterDragging = newRect => UpdateAnimLinesAndCoords(owner, newRect),
                 AfterResizing = (newRect, _) => UpdateAnimLinesAndCoords(owner, newRect),
                 DragCompleted = () => { userIsHandlingFrames = false; CheckClumps(owner); },
@@ -267,8 +267,8 @@ namespace ImageTour
         private void CheckAspectRatio(FrameworkElement keyframeElement)
         {
             var prop = frameProps[keyframeElement];
-            var expectedAspectRatio = OutputWidth.Value / OutputHeight.Value;
-            var actualAspectRatio = (double)prop.KeyFrame.Width / prop.KeyFrame.Height;
+            var expectedAspectRatio = Math.Round(OutputWidth.Value) / Math.Round(OutputHeight.Value);
+            var actualAspectRatio = Math.Round(prop.KeyFrame.Width) / Math.Round(prop.KeyFrame.Height);
             prop.KeyFrame.IncorrectAspectRatio = Math.Abs(expectedAspectRatio - actualAspectRatio) > 0.00001;
             if (prop.KeyFrameLabel.HoldsTwo) prop.KeyFrame2.IncorrectAspectRatio = prop.KeyFrame.IncorrectAspectRatio;
         }
@@ -281,10 +281,10 @@ namespace ImageTour
             if (fromLines != null) UpdateLineFrom(keyframeElement, left, top, fromLines);
             if (toLines != null) UpdateLineTo(keyframeElement, left, top, toLines);
             var keyFrame = frameProps[keyframeElement].KeyFrame;
-            keyFrame.X = (int)left;
-            keyFrame.Y = (int)top;
-            keyFrame.Width = (int)newRect.Width;
-            keyFrame.Height = (int)newRect.Height;
+            keyFrame.X = left;
+            keyFrame.Y = top;
+            keyFrame.Width = newRect.Width;
+            keyFrame.Height = newRect.Height;
             var keyFrame2 = frameProps[keyframeElement].KeyFrame2;
             if (keyFrame2 != null)
             {
@@ -375,12 +375,12 @@ namespace ImageTour
             ContentCanvas.Height = height;
             const int defaultSize = 500;
             var canvasWiderThanView = FitCanvasToView();
-            int initialFrameSize = (int)Math.Min(defaultSize, (canvasWiderThanView ? height : width) - 20);
+            var initialFrameSize = (int)Math.Min(defaultSize, (canvasWiderThanView ? height : width) - 20);
             OutputWidth.Value = OutputHeight.Value = initialFrameSize;
 
             InitLinesAnimation();
-            var initialFramePosX = (int)((width - initialFrameSize) / 2);
-            var initialFramePosY = (int)(height - initialFrameSize) / 2;
+            var initialFramePosX = ((width - initialFrameSize) / 2);
+            var initialFramePosY = (height - initialFrameSize) / 2;
             AddTransitionKeyFrames(initialFramePosX, initialFramePosY, initialFrameSize, initialFrameSize);
         }
 
@@ -429,7 +429,7 @@ namespace ImageTour
             _dashTimer.Start();
         }
 
-        private void AddTransitionKeyFrames(int x, int y, int width, int height)
+        private void AddTransitionKeyFrames(double x, double y, double width, double height)
         {
             var keyFrameElement1 = AddNewKeyFrameElement(x, y, width, height);
             var keyFrameElement2 = AddNewKeyFrameElement(x, y, width, height);
@@ -465,7 +465,7 @@ namespace ImageTour
             CheckClumps(keyFrameElement2);
         }
 
-        private FrameworkElement AddNewKeyFrameElement(int x, int y, int width, int height)
+        private FrameworkElement AddNewKeyFrameElement(double x, double y, double width, double height)
         {
             var keyFrameElement = (FrameworkElement)keyFrameTemplate.LoadContent();
             ContentCanvas.Children.Add(keyFrameElement);
@@ -482,7 +482,7 @@ namespace ImageTour
             return keyFrameElement;
         }
 
-        private void AddNewKeyframeFully(int x, int y, int width, int height)
+        private void AddNewKeyframeFully(double x, double y, double width, double height)
         {
             var lastKeyFrame = transitions.Last().EndKeyFrame;
             var startFrame = new KeyFrame(lastKeyFrame.X, lastKeyFrame.Y, lastKeyFrame.Width, lastKeyFrame.Height, lastKeyFrame.Number + 1);
@@ -493,7 +493,7 @@ namespace ImageTour
             keyFrameToElement.Add(startFrame, startKeyFrameElement);
             var endKeyFrameElement = AddNewKeyFrameElement(startFrame.X, startFrame.Y, width, height);// Add it at startFrame position...
             resizer.PositionElement(endKeyFrameElement, x, y);// ...then move it to intended position to keep it in bounds
-            var endFrame = new KeyFrame((int)resizer.GetElementLeft(endKeyFrameElement), (int)resizer.GetElementTop(endKeyFrameElement),
+            var endFrame = new KeyFrame(resizer.GetElementLeft(endKeyFrameElement), resizer.GetElementTop(endKeyFrameElement),
                 startFrame.Width, startFrame.Height, lastKeyFrame.Number + 2);
             keyFrameToElement.Add(endFrame, endKeyFrameElement);
             var endKeyFrameProps = new KeyFrameProps
@@ -576,7 +576,7 @@ namespace ImageTour
                 menuFlyout.Items.Add(CreateFlyoutSubItems("Swap frame size", PopulateSizeSwapSubItems(true)));
             }
 
-            if (props.KeyFrame.Width != (int)OutputWidth.Value || props.KeyFrame.Height != (int)OutputHeight.Value)
+            if (props.KeyFrame.Width != OutputWidth.Value || props.KeyFrame.Height != OutputHeight.Value)
             {
                 menuFlyout.Items.Add(new MenuFlyoutSubItem
                 {
@@ -585,7 +585,7 @@ namespace ImageTour
                     {
                         CreateFlyoutItem("Set this to output size", () =>
                         {
-                            resizer.ResizeElement(keyframeElement, (int)OutputWidth.Value, (int)OutputHeight.Value, parameters: GetAspectRatioParam(false));
+                            resizer.ResizeElement(keyframeElement, OutputWidth.Value, OutputHeight.Value, parameters: GetAspectRatioParam(false));
                             UpdateAnimLinesAndCoords(keyframeElement);
                             CheckAspectRatio(keyframeElement);
                         }),
@@ -870,7 +870,7 @@ namespace ImageTour
             }
         }
 
-        private GridView AddMultiKeyFrameLabel(int x, int y, params KeyFrameLabel[] labels)
+        private GridView AddMultiKeyFrameLabel(double x, double y, params KeyFrameLabel[] labels)
         {
             var multiKeyFrameLabel = (GridView)multiKeyFrameLabelTemplate.LoadContent();
             ContentCanvas.Children.Add(multiKeyFrameLabel);
@@ -891,7 +891,7 @@ namespace ImageTour
         private void CanvasAddKeyFrameClicked(object sender, RoutedEventArgs e)
         {
             var lastKeyFrame = transitions.Last().EndKeyFrame;
-            AddNewKeyframeFully((int)_lastCanvasPressedPoint.X, (int)_lastCanvasPressedPoint.Y, lastKeyFrame.Width, lastKeyFrame.Height);
+            AddNewKeyframeFully(_lastCanvasPressedPoint.X, _lastCanvasPressedPoint.Y, lastKeyFrame.Width, lastKeyFrame.Height);
         }
 
         private void CanvasAddTransitionClicked(object sender, RoutedEventArgs e)
@@ -901,7 +901,7 @@ namespace ImageTour
             resizer.PositionElement(dummyFrame, _lastCanvasPressedPoint.X, _lastCanvasPressedPoint.Y);// ...then move it to intended position to keep it in bounds
             var (left, top) = (resizer.GetElementLeft(dummyFrame), resizer.GetElementTop(dummyFrame));// Get the new position after moving...
             resizer.RemoveElement(dummyFrame);// ...and remove the dummy frame
-            AddTransitionKeyFrames((int)left, (int)top, lastKeyFrame.Width, lastKeyFrame.Height);
+            AddTransitionKeyFrames(left, top, lastKeyFrame.Width, lastKeyFrame.Height);
         }
 
         private void CanvasFitToViewClicked(object sender, RoutedEventArgs e)
@@ -949,7 +949,7 @@ namespace ImageTour
                 panX = -(keyframe.X * zoom - (CanvasContainer.ActualWidth - keyframe.Width * zoom) / 2);
             }
             AnimateTransform(panX, panY, zoom);
-            }
+        }
 
         private void AnimateTransform(double panX, double panY, double zoom)
         {
@@ -1018,12 +1018,20 @@ namespace ImageTour
             }
         }
 
+        private void OutputSizeChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+        {
+            foreach (var keyframeElement in frameProps.Keys)
+            {
+                CheckAspectRatio(keyframeElement);
+            }
+        }
+
         private void FrameXChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
         {
             if (userIsHandlingFrames || double.IsNaN(args.OldValue)) return;
             var keyframe = (KeyFrame)sender.DataContext;
-            if (keyframe.X == (int)args.NewValue) return;
-            keyframe.X = (int)args.NewValue;
+            if (keyframe.X == args.NewValue) return;
+            keyframe.X = args.NewValue;
             var keyframeElement = keyFrameToElement[keyframe];
             resizer.PositionElementLeft(keyframeElement, args.NewValue);
             UpdateAnimLinesAndCoords(keyframeElement);
@@ -1035,8 +1043,8 @@ namespace ImageTour
         {
             if (userIsHandlingFrames || double.IsNaN(args.OldValue)) return;
             var keyframe = (KeyFrame)sender.DataContext;
-            if (keyframe.Y == (int)args.NewValue) return;
-            keyframe.Y = (int)args.NewValue;
+            if (keyframe.Y == args.NewValue) return;
+            keyframe.Y = args.NewValue;
             var keyframeElement = keyFrameToElement[keyframe];
             resizer.PositionElementTop(keyframeElement, args.NewValue);
             UpdateAnimLinesAndCoords(keyframeElement);
@@ -1048,8 +1056,8 @@ namespace ImageTour
         {
             if (userIsHandlingFrames || double.IsNaN(args.OldValue)) return;
             var keyframe = (KeyFrame)sender.DataContext;
-            if (keyframe.Width == (int)args.NewValue) return;
-            keyframe.Width = (int)args.NewValue;
+            if (keyframe.Width == args.NewValue) return;
+            keyframe.Width = args.NewValue;
             var keyframeElement = keyFrameToElement[keyframe];
             resizer.ResizeElementWidth(keyframeElement, args.NewValue);
             UpdateAnimLinesAndCoords(keyframeElement);
@@ -1061,8 +1069,8 @@ namespace ImageTour
         {
             if (userIsHandlingFrames || double.IsNaN(args.OldValue)) return;
             var keyframe = (KeyFrame)sender.DataContext;
-            if (keyframe.Height == (int)args.NewValue) return;
-            keyframe.Height = (int)args.NewValue;
+            if (keyframe.Height == args.NewValue) return;
+            keyframe.Height = args.NewValue;
             var keyframeElement = keyFrameToElement[keyframe];
             resizer.ResizeElementHeight(keyframeElement, args.NewValue);
             UpdateAnimLinesAndCoords(keyframeElement);
@@ -1082,8 +1090,8 @@ namespace ImageTour
         {
             var transitionsToProcess = transitions.Select(t => new ImageTourProcessor.Transition
             {
-                StartKeyFrame = new ImageTourProcessor.KeyFrame { X = t.StartKeyFrame.X, Y = t.StartKeyFrame.Y, Width = t.StartKeyFrame.Width, Height = t.StartKeyFrame.Height },
-                EndKeyFrame = new ImageTourProcessor.KeyFrame { X = t.EndKeyFrame.X, Y = t.EndKeyFrame.Y, Width = t.EndKeyFrame.Width, Height = t.EndKeyFrame.Height },
+                StartKeyFrame = ModelToProcessorKeyframe(t.StartKeyFrame),
+                EndKeyFrame = ModelToProcessorKeyframe(t.EndKeyFrame),
                 Duration = t.Duration
             }).ToArray();
             viewModel.State = OperationState.DuringOperation;
@@ -1116,7 +1124,7 @@ namespace ImageTour
 
             try
             {
-                var payload = await tourProcessor.Animate(mediaPath, isVideo, (int)OutputWidth.Value, (int)OutputHeight.Value, OutputFrameRate.Value,
+                var payload = await tourProcessor.Animate(mediaPath, isVideo, Convert.ToInt32(OutputWidth.Value), Convert.ToInt32(OutputHeight.Value), OutputFrameRate.Value,
                     transitionsToProcess, SetOutputFile, progress, DontDeleteFrames.IsChecked ?? false);
 
                 if (viewModel.State == OperationState.BeforeOperation) return; //Canceled
@@ -1124,7 +1132,6 @@ namespace ImageTour
                 {
                     viewModel.State = OperationState.BeforeOperation;
                     await ErrorAction(payload.ErrorMessage);
-                    //await tourProcessor.Cancel(outputFile);
                     return;
                 }
 
@@ -1148,6 +1155,14 @@ namespace ImageTour
                 ErrorDialog.Content = message;
                 await ErrorDialog.ShowAsync();
             }
+
+            ImageTourProcessor.KeyFrame ModelToProcessorKeyframe(KeyFrame keyframe) => new()
+            {
+                X = Convert.ToInt32(keyframe.X),
+                Y = Convert.ToInt32(keyframe.Y),
+                Width = Convert.ToInt32(keyframe.Width),
+                Height = Convert.ToInt32(keyframe.Height)
+            };
         }
 
         private void PauseOrViewTour_OnClick(object sender, RoutedEventArgs e)
@@ -1196,14 +1211,6 @@ namespace ImageTour
             if (navigateTo == null) Frame.GoBack();
             else Frame.NavigateToType(Type.GetType(navigateTo), outputFile, new FrameNavigationOptions { IsNavigationStackEnabled = false });
         }
-
-        private void OutputSizeChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
-        {
-            foreach (var keyframeElement in frameProps.Keys)
-            {
-                CheckAspectRatio(keyframeElement);
-            }
-        }
     }
 
     class AnimLines
@@ -1229,5 +1236,47 @@ namespace ImageTour
         public string FfmpegPath { get; set; }
         public string MediaPath { get; set; }
         public string? TypeToNavigateTo { get; set; }
+    }
+
+    public class DoubleFormatter: INumberFormatter2, INumberParser
+    {
+        public string FormatDouble(double value, int precision, bool isDecimal, bool isPercent, bool isCurrency)
+        {
+            return value.ToString("F0");
+        }
+        public bool TryParseDouble(string text, out double result)
+        {
+            return double.TryParse(text, out result);
+        }
+
+        public string FormatInt(long value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string FormatUInt(ulong value)
+        {
+            throw new NotImplementedException();
+        }
+
+        public string FormatDouble(double value)
+        {
+            return value.ToString("F0");
+        }
+
+        public long? ParseInt(string text)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ulong? ParseUInt(string text)
+        {
+            throw new NotImplementedException();
+        }
+
+        public double? ParseDouble(string text)
+        {
+            return double.Parse(text);
+        }
     }
 }

@@ -26,6 +26,7 @@
             <converters:BoolToObjectConverter x:Key="ResumeOrPauseGlyphConverter" TrueValue="&#xE768;" FalseValue="&#xE784;"/>
             <converters:BoolNegationConverter x:Key="BoolNegationConverter" />
             <converters:BoolToObjectConverter x:Key="PlayPauseGlyphConverter" TrueValue="&#xF8AE;" FalseValue="&#xF5B0;"/>
+            <local:DoubleFormatter x:Key="DoubleFormatter"/>
         </ResourceDictionary>
     </Page.Resources>
 
@@ -39,9 +40,9 @@
             <ColumnDefinition Width="*"/>
             <ColumnDefinition Width="500"/>
         </Grid.ColumnDefinitions>
-        <Grid Name="CanvasContainer" SizeChanged="CanvasContainer_OnSizeChanged" Background="Black">
+        <Grid Name="CanvasContainer" SizeChanged="CanvasContainer_OnSizeChanged">
             <Canvas x:Name="ContentCanvas" PointerWheelChanged="Canvas_PointerWheelChanged" PointerPressed="Canvas_PointerPressed" PointerMoved="Canvas_PointerMoved"
-                PointerReleased="Canvas_PointerReleased" Background="Black" Grid.RowSpan="2" HorizontalAlignment="Left" VerticalAlignment="Top">
+                PointerReleased="Canvas_PointerReleased" HorizontalAlignment="Left" VerticalAlignment="Top">
                 <Canvas.RenderTransform>
                     <TransformGroup>
                         <ScaleTransform x:Name="ZoomTransform" ScaleX="1" ScaleY="1"/>
@@ -171,16 +172,17 @@
                                 <DataTemplate x:Key="FrameData" x:DataType="imageTour:KeyFrame">
                                     <RelativePanel Height="50" Width="130">
                                         <NumberBox Value="{x:Bind X, Mode=OneWay}" Style="{StaticResource SmallNumberBox}" ValueChanged="FrameXChanged"
-                                                   ToolTipService.ToolTip="{x:Bind IsStartKeyframe, Converter={StaticResource TooltipX}}"/>
+                                                   ToolTipService.ToolTip="{x:Bind IsStartKeyframe, Converter={StaticResource TooltipX}}" NumberFormatter="{StaticResource DoubleFormatter}"/>
                                         <NumberBox Value="{x:Bind Y, Mode=OneWay}" Style="{StaticResource SmallNumberBox}" RelativePanel.AlignRightWithPanel="True"
-                                                   ValueChanged="FrameYChanged" ToolTipService.ToolTip="{x:Bind IsStartKeyframe, Converter={StaticResource TooltipY}}"/>
+                                                   ValueChanged="FrameYChanged" ToolTipService.ToolTip="{x:Bind IsStartKeyframe, Converter={StaticResource TooltipY}}"
+                                                   NumberFormatter="{StaticResource DoubleFormatter}"/>
                                         <NumberBox Value="{x:Bind Width, Mode=OneWay}" Style="{StaticResource SmallNumberBox}" ValueChanged="FrameWidthChanged"
                                                    Background="{x:Bind IncorrectAspectRatio, Mode=OneWay, Converter={StaticResource IncorrectARConverter}}"
-                                                   RelativePanel.AlignBottomWithPanel="True"
+                                                   RelativePanel.AlignBottomWithPanel="True" NumberFormatter="{StaticResource DoubleFormatter}"
                                                    ToolTipService.ToolTip="{x:Bind IsStartKeyframe, Converter={StaticResource TooltipWidth}}"/>
                                         <NumberBox Value="{x:Bind Height, Mode=OneWay}" Style="{StaticResource SmallNumberBox}" ValueChanged="FrameHeightChanged"
                                                    Background="{x:Bind IncorrectAspectRatio, Mode=OneWay, Converter={StaticResource IncorrectARConverter}}"
-                                                   RelativePanel.AlignRightWithPanel="True" RelativePanel.AlignBottomWithPanel="True"
+                                                   RelativePanel.AlignRightWithPanel="True" RelativePanel.AlignBottomWithPanel="True" NumberFormatter="{StaticResource DoubleFormatter}"
                                                    ToolTipService.ToolTip="{x:Bind IsStartKeyframe, Converter={StaticResource TooltipHeight}}"/>
                                     </RelativePanel>
                                 </DataTemplate>
