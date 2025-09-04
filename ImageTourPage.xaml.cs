@@ -387,24 +387,24 @@ namespace ImageTour
         private bool FitCanvasToView()
         {
             bool canvasWiderThanView;
-            //GeneralTransform gt = ContentCanvas.TransformToVisual(CanvasContainer);
-            //Point offset = gt.TransformPoint(new Point(0, 0));
+            double panX, panY, zoom;
             if (CanvasContainer.ActualWidth / CanvasContainer.ActualHeight < ContentCanvas.Width / ContentCanvas.Height)
             {
-                ZoomTransform.ScaleX = ZoomTransform.ScaleY = CanvasContainer.ActualWidth / ContentCanvas.Width; // Fit to width
+                zoom = CanvasContainer.ActualWidth / ContentCanvas.Width; // Fit to width
                 var scaledHeight = CanvasContainer.ActualWidth * ContentCanvas.Height / ContentCanvas.Width;
-                PanTransform.Y = (CanvasContainer.ActualHeight - scaledHeight) / 2; // Center vertically
-                PanTransform.X = 0;
+                panY = (CanvasContainer.ActualHeight - scaledHeight) / 2; // Center vertically
+                panX = 0;
                 canvasWiderThanView = true;
             }
             else
             {
-                ZoomTransform.ScaleX = ZoomTransform.ScaleY = CanvasContainer.ActualHeight / ContentCanvas.Height; // Fit to height
+                zoom = CanvasContainer.ActualHeight / ContentCanvas.Height; // Fit to height
                 var scaledWidth = CanvasContainer.ActualHeight * ContentCanvas.Width / ContentCanvas.Height;
-                PanTransform.X = (CanvasContainer.ActualWidth - scaledWidth) / 2; // Center horizontally
-                PanTransform.Y = 0;
+                panX = (CanvasContainer.ActualWidth - scaledWidth) / 2; // Center horizontally
+                panY = 0;
                 canvasWiderThanView = false;
             }
+            AnimateTransform(panX, panY, zoom);
             return canvasWiderThanView;
         }
 
@@ -935,18 +935,68 @@ namespace ImageTour
             var menuItem = (MenuFlyoutItem)sender;
             var keyframe = (KeyFrame)menuItem.DataContext;
             const int margin = 20;
-            if (CanvasContainer.ActualWidth / CanvasContainer.ActualHeight < (double)keyframe.Width / keyframe.Height)
+            double panX, panY, zoom;
+            if (CanvasContainer.ActualWidth / CanvasContainer.ActualHeight < keyframe.Width / keyframe.Height)
             {
-                ZoomTransform.ScaleX = ZoomTransform.ScaleY = CanvasContainer.ActualWidth / (keyframe.Width + margin * 2);
-                PanTransform.X = -(keyframe.X - margin) * ZoomTransform.ScaleX;
-                PanTransform.Y = -(keyframe.Y * ZoomTransform.ScaleY - (CanvasContainer.ActualHeight - keyframe.Height * ZoomTransform.ScaleY) / 2);
+                zoom = CanvasContainer.ActualWidth / (keyframe.Width + margin * 2);
+                panX = -(keyframe.X - margin) * zoom;
+                panY = -(keyframe.Y * zoom - (CanvasContainer.ActualHeight - keyframe.Height * zoom) / 2);
             }
             else
             {
-                ZoomTransform.ScaleX = ZoomTransform.ScaleY = CanvasContainer.ActualHeight / (keyframe.Height + margin * 2);
-                PanTransform.Y = -(keyframe.Y - margin) * ZoomTransform.ScaleY;
-                PanTransform.X = -(keyframe.X * ZoomTransform.ScaleX - (CanvasContainer.ActualWidth - keyframe.Width * ZoomTransform.ScaleX) / 2);
+                zoom = CanvasContainer.ActualHeight / (keyframe.Height + margin * 2);
+                panY = -(keyframe.Y - margin) * zoom;
+                panX = -(keyframe.X * zoom - (CanvasContainer.ActualWidth - keyframe.Width * zoom) / 2);
             }
+            AnimateTransform(panX, panY, zoom);
+            }
+
+        private void AnimateTransform(double panX, double panY, double zoom)
+        {
+            var storyboard = new Storyboard(); //Animates PanTransform.X/Y and ZoomTransform.ScaleX/Y
+            const double animDuration = 500;
+
+            var animPanX = new DoubleAnimation
+            {
+                To = panX,
+                Duration = new Duration(TimeSpan.FromMilliseconds(animDuration)),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(animPanX, PanTransform);
+            Storyboard.SetTargetProperty(animPanX, "X");
+            storyboard.Children.Add(animPanX);
+
+            var animPanY = new DoubleAnimation
+            {
+                To = panY,
+                Duration = new Duration(TimeSpan.FromMilliseconds(animDuration)),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(animPanY, PanTransform);
+            Storyboard.SetTargetProperty(animPanY, "Y");
+            storyboard.Children.Add(animPanY);
+
+            var animZoomX = new DoubleAnimation
+            {
+                To = zoom,
+                Duration = new Duration(TimeSpan.FromMilliseconds(animDuration)),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(animZoomX, ZoomTransform);
+            Storyboard.SetTargetProperty(animZoomX, "ScaleX");
+            storyboard.Children.Add(animZoomX);
+
+            var animZoomY = new DoubleAnimation
+            {
+                To = zoom,
+                Duration = new Duration(TimeSpan.FromMilliseconds(animDuration)),
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+            };
+            Storyboard.SetTarget(animZoomY, ZoomTransform);
+            Storyboard.SetTargetProperty(animZoomY, "ScaleY");
+            storyboard.Children.Add(animZoomY);
+
+            storyboard.Begin();
         }
 
         private void FrameHideClicked(object sender, RoutedEventArgs e)
