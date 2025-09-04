@@ -194,8 +194,8 @@ namespace ImageTour
                 BeforeDragging = point => new Point(point.X / ZoomTransform.ScaleX, point.Y / ZoomTransform.ScaleY),
                 BeforeResizing =
                     (point, _) => new Point(point.X / ZoomTransform.ScaleX, point.Y / ZoomTransform.ScaleY),
-                AfterDragging = _ => UpdateAnimLinesAndCoords(owner),
-                AfterResizing = (_, _) => UpdateAnimLinesAndCoords(owner),
+                AfterDragging = newRect => UpdateAnimLinesAndCoords(owner, newRect),
+                AfterResizing = (newRect, _) => UpdateAnimLinesAndCoords(owner, newRect),
                 DragCompleted = () => { userIsHandlingFrames = false; CheckClumps(owner); },
                 ResizeCompleted = _ => { userIsHandlingFrames = false; CheckAspectRatio(owner); }
             };
@@ -273,18 +273,18 @@ namespace ImageTour
             if (prop.KeyFrameLabel.HoldsTwo) prop.KeyFrame2.IncorrectAspectRatio = prop.KeyFrame.IncorrectAspectRatio;
         }
 
-        private void UpdateAnimLinesAndCoords(FrameworkElement keyframeElement)
+        private void UpdateAnimLinesAndCoords(FrameworkElement keyframeElement, Rect newRect)
         {
-            var top = resizer.GetElementTop(keyframeElement);
-            var left = resizer.GetElementLeft(keyframeElement);
+            var top = newRect.Top;
+            var left = newRect.Left;
             var (fromLines, toLines) = frameProps[keyframeElement].AnimLines;
             if (fromLines != null) UpdateLineFrom(keyframeElement, left, top, fromLines);
             if (toLines != null) UpdateLineTo(keyframeElement, left, top, toLines);
             var keyFrame = frameProps[keyframeElement].KeyFrame;
             keyFrame.X = (int)left;
             keyFrame.Y = (int)top;
-            keyFrame.Width = (int)keyframeElement.Width;
-            keyFrame.Height = (int)keyframeElement.Height;
+            keyFrame.Width = (int)newRect.Width;
+            keyFrame.Height = (int)newRect.Height;
             var keyFrame2 = frameProps[keyframeElement].KeyFrame2;
             if (keyFrame2 != null)
             {
@@ -293,6 +293,13 @@ namespace ImageTour
                 keyFrame2.Width = keyFrame.Width;
                 keyFrame2.Height = keyFrame.Height;
             }
+        }
+
+        private void UpdateAnimLinesAndCoords(FrameworkElement keyframeElement)
+        {
+            UpdateAnimLinesAndCoords(keyframeElement,
+                new Rect(resizer.GetElementLeft(keyframeElement), resizer.GetElementTop(keyframeElement),
+                    keyframeElement.Width, keyframeElement.Height));
         }
 
         private Line GetNewAnimLine()

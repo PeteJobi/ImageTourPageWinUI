@@ -165,7 +165,7 @@
                                             </MenuFlyout>
                                         </Border.ContextFlyout>
                                         <TextBlock LineStackingStrategy="BlockLineHeight" LineHeight="16" FontWeight="Bold" FontSize="15" VerticalAlignment="Center"
-                                                   HorizontalAlignment="Center" Text="{x:Bind Number, Mode=OneWay}"/>
+                                                   HorizontalAlignment="Center" Text="{x:Bind Number, Mode=OneWay}" Foreground="Black"/>
                                     </Border>
                                 </DataTemplate>
                                 <DataTemplate x:Key="FrameData" x:DataType="imageTour:KeyFrame">
