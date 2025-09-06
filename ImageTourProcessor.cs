@@ -270,10 +270,10 @@ namespace ImageTourPage
                 widthDiff += widthChunk;
                 heightDiff += heightChunk;
                 frameTimeDiff += frameTimeChunk;
-                currentShift.X = transition.StartKeyFrame.X + Convert.ToInt32(xDiff);
-                currentShift.Y = transition.StartKeyFrame.Y + Convert.ToInt32(yDiff);
-                currentShift.Width = transition.StartKeyFrame.Width + Convert.ToInt32(widthDiff);
-                currentShift.Height = transition.StartKeyFrame.Height + Convert.ToInt32(heightDiff);
+                currentShift.X = transition.StartKeyFrame.X + xDiff;
+                currentShift.Y = transition.StartKeyFrame.Y + yDiff;
+                currentShift.Width = transition.StartKeyFrame.Width + widthDiff;
+                currentShift.Height = transition.StartKeyFrame.Height + heightDiff;
                 if (isVideo)
                 {
                     await GenerateFrame(currentShift, totalFramesSoFar + i, totalTimeSoFar + frameTimeDiff);
@@ -295,7 +295,7 @@ namespace ImageTourPage
         async Task GenerateFrame(KeyFrame keyFrame, int frameNumber, TimeSpan frameTimePoint = default)
         {
             var seek = frameTimePoint == TimeSpan.Zero ? string.Empty : $"-ss {frameTimePoint} ";
-            await StartProcess(ffmpegPath, $"{seek}-i \"{inputPath}\" -frames:v 1 -vf \"crop={keyFrame.Width}:{keyFrame.Height}:{keyFrame.X}:{keyFrame.Y},scale=w={width}:h={height}\" \"{folder}/frame{frameNumber:D8}.png\"", null, (sender, args) =>
+            await StartProcess(ffmpegPath, $"{seek}-i \"{inputPath}\" -frames:v 1 -vf \"crop={keyFrame.Width}:{keyFrame.Height}:{keyFrame.X}:{keyFrame.Y}:exact=1,scale=w={width}:h={height}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp\" \"{folder}/frame{frameNumber:D8}.png\"", null, (sender, args) =>
             {
                 //if (string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) Console.WriteLine("N");
                 if(args.Data?.Contains("failed", StringComparison.OrdinalIgnoreCase) == true) Debug.WriteLine(args.Data);
@@ -489,10 +489,10 @@ namespace ImageTourPage
 
         public struct KeyFrame
         {
-            public int X { get; set; }
-            public int Y { get; set; }
-            public int Width { get; set; }
-            public int Height { get; set; }
+            public double X { get; set; }
+            public double Y { get; set; }
+            public double Width { get; set; }
+            public double Height { get; set; }
 
             public override string ToString()
             {

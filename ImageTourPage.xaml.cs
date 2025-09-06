@@ -1158,10 +1158,10 @@ namespace ImageTour
 
             ImageTourProcessor.KeyFrame ModelToProcessorKeyframe(KeyFrame keyframe) => new()
             {
-                X = Convert.ToInt32(keyframe.X),
-                Y = Convert.ToInt32(keyframe.Y),
-                Width = Convert.ToInt32(keyframe.Width),
-                Height = Convert.ToInt32(keyframe.Height)
+                X = keyframe.X,
+                Y = keyframe.Y,
+                Width = keyframe.Width,
+                Height = keyframe.Height
             };
         }
 
