@@ -220,7 +220,7 @@ namespace ImageTourPage
             await StartProcess(ffmpegPath, $"-i \"{inputPath}\"", null, (sender, args) =>
             {
                 if (string.IsNullOrWhiteSpace(args.Data)) return;
-                //Console.WriteLine(args.Data);
+                //Debug.WriteLine(args.Data);
                 if (totalWidth + totalHeight == 0)
                 {
                     MatchCollection matchCollection = Regex.Matches(args.Data, @"\s*Stream #0:0.+?: .+, (\d+)x(\d+).+");
@@ -295,7 +295,7 @@ namespace ImageTourPage
         async Task GenerateFrame(KeyFrame keyFrame, int frameNumber, TimeSpan frameTimePoint = default)
         {
             var seek = frameTimePoint == TimeSpan.Zero ? string.Empty : $"-ss {frameTimePoint} ";
-            await StartProcess(ffmpegPath, $"{seek}-i \"{inputPath}\" -frames:v 1 -vf \"crop={keyFrame.Width}:{keyFrame.Height}:{keyFrame.X}:{keyFrame.Y}:exact=1,scale=w={width}:h={height}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp\" \"{folder}/frame{frameNumber:D8}.png\"", null, (sender, args) =>
+            await StartProcess(ffmpegPath, $"{seek}-i \"{inputPath}\" -frames:v 1 -vf \"crop={keyFrame.Width}:{keyFrame.Height}:{keyFrame.X}:{keyFrame.Y}:exact=1,scale=w={width}:h={height}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp,format=rgb24,setsar=1\" \"{folder}/frame{frameNumber:D8}.png\"", null, (sender, args) =>
             {
                 //if (string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) Console.WriteLine("N");
                 if(args.Data?.Contains("failed", StringComparison.OrdinalIgnoreCase) == true) Debug.WriteLine(args.Data);
