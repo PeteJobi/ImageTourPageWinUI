@@ -1,4 +1,4 @@
-## Image Tour Page WinUI 3
+## Image Tour Page (WinUI 3)
 This provides a reuseable WinUI 3 page with an interface that allows for touring images to create smaller frame videos from higher resolution images. Also supports video inputs.
 
 <img width="1787" height="1014" alt="Screenshot 2025-09-01 163707" src="https://github.com/user-attachments/assets/0a467080-326a-451e-8903-86e8fb08fe9e" />
