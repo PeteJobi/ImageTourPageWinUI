@@ -149,7 +149,7 @@ namespace ImageTourPage
             try
             {
                 var outputPath = GetOutputName(inputPath, setFile);
-                var x = $"-r {fps} -i \"{folder}/frame%08d.png\" -c:v libx264 -vf scale=out_color_matrix=bt709,format=yuv420p \"{outputPath}\"";
+                var x = $"-r {fps} -i \"{folder}/frame%08d.png\" -c:v libx265 -vf scale=out_color_matrix=bt709,format=yuv420p \"{outputPath}\"";
                 await StartProcess(ffmpegPath, x, null, (sender, args) =>
                 {
                     if (string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) return;
