@@ -269,7 +269,7 @@ namespace ImageTour
             var prop = frameProps[keyframeElement];
             var expectedAspectRatio = Math.Round(OutputWidth.Value) / Math.Round(OutputHeight.Value);
             var actualAspectRatio = Math.Round(prop.KeyFrame.Width) / Math.Round(prop.KeyFrame.Height);
-            prop.KeyFrame.IncorrectAspectRatio = Math.Abs(expectedAspectRatio - actualAspectRatio) > 0.00001;
+            prop.KeyFrame.IncorrectAspectRatio = Math.Abs(expectedAspectRatio - actualAspectRatio) > 0.0001;
             if (prop.KeyFrameLabel.HoldsTwo) prop.KeyFrame2.IncorrectAspectRatio = prop.KeyFrame.IncorrectAspectRatio;
         }
 
