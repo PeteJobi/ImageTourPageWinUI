@@ -9,7 +9,7 @@
     <Import_RootNamespace>ImageTourPage</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Page Include="$(MSBuildThisFileDirectory)Controls\TimespanTextBox.xaml">
+    <Page Include="$(MSBuildThisFileDirectory)Controls\TourTimespanTextBox.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -18,30 +18,30 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="$(MSBuildThisFileDirectory)Resources\TemplateOverrides.xaml">
+    <Page Include="$(MSBuildThisFileDirectory)Resources\TourTemplateOverrides.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="$(MSBuildThisFileDirectory)Resources\Dictionary.xaml">
+    <Page Include="$(MSBuildThisFileDirectory)Resources\TourDictionary.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="$(MSBuildThisFileDirectory)Resources\Templates.xaml">
+    <Page Include="$(MSBuildThisFileDirectory)Resources\TourTemplates.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)Controls\TimespanTextBox.xaml.cs">
-      <DependentUpon>TimespanTextBox.xaml</DependentUpon>
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\TourTimespanTextBox.xaml.cs">
+      <DependentUpon>TourTimespanTextBox.xaml</DependentUpon>
     </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)ImageTourProcessor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ImageTourPage.xaml.cs">
       <DependentUpon>ImageTourPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="$(MSBuildThisFileDirectory)Resources\Templates.xaml.cs">
-      <DependentUpon>Templates.xaml</DependentUpon>
+    <Compile Include="$(MSBuildThisFileDirectory)Resources\TourTemplates.xaml.cs">
+      <DependentUpon>TourTemplates.xaml</DependentUpon>
     </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)TourModels.cs" />
   </ItemGroup>

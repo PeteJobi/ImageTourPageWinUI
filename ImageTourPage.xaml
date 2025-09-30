@@ -13,7 +13,7 @@
     <Page.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="ms-appx:///Resources/TemplateOverrides.xaml" />
+                <ResourceDictionary Source="ms-appx:///Resources/TourTemplateOverrides.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <converters:BoolToObjectConverter x:Name="IncorrectARConverter" TrueValue="{ThemeResource SystemFillColorCautionBackgroundBrush}"
                                               FalseValue="{ThemeResource TextControlBackground}"/>
