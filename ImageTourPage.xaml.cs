@@ -1122,6 +1122,8 @@ namespace ImageTour
 
             });
 
+            string? tempOutputFile = null;
+            outputFile = null;
             try
             {
                 var payload = await tourProcessor.Animate(mediaPath, isVideo, Convert.ToInt32(OutputWidth.Value), Convert.ToInt32(OutputHeight.Value), OutputFrameRate.Value,
@@ -1137,6 +1139,7 @@ namespace ImageTour
 
                 viewModel.State = OperationState.AfterOperation;
                 CurrentStatus.Text = "Done";
+                outputFile = tempOutputFile;
             }
             catch (Exception ex)
             {
@@ -1146,7 +1149,7 @@ namespace ImageTour
 
             void SetOutputFile(string file)
             {
-                outputFile = file;
+                tempOutputFile = file;
             }
 
             async Task ErrorAction(string message)
