@@ -7,8 +7,8 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:imageTour="using:ImageTourPage"
-    xmlns:controls="using:ImageTourPage.Controls"
     xmlns:converters="using:CommunityToolkit.WinUI.Converters"
+    xmlns:timeline="using:Timeline"
     mc:Ignorable="d">
     <Page.Resources>
         <ResourceDictionary>
@@ -61,18 +61,8 @@
                        Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}"/>
             </Canvas>
         </Grid>
-        <Grid Grid.Row="1" Grid.Column="0" Height="50" Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
-            <Button Click="PlayPause" Margin="10,0,0,0">
-                <FontIcon Glyph="{x:Bind viewModel.IsPlaying, Mode=OneWay, Converter={StaticResource PlayPauseGlyphConverter}}"/>
-            </Button>
-            <Slider Grid.Column="1" Name="VideoProgressSlider" VerticalAlignment="Center" Margin="10,0,10,0" ValueChanged="VideoProgressSlider_OnValueChanged"/>
-            <TextBlock Grid.Column="2" Name="VideoTime" VerticalAlignment="Center"/>
-        </Grid>
+        <timeline:VideoControls Grid.Row="1" Grid.Column="0" Height="50" MediaPlayer="{x:Bind Video.MediaPlayer}" CurrentTimeEditable="True" ShowFractionalSeconds="True"
+                                Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}}" Margin="10,0"/>
         <RelativePanel Visibility="{x:Bind viewModel.BeforeOperation, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}"
                Grid.Row="2" Grid.Column="0" Padding="10">
             <TextBlock Name="CurrentTransitionLabel"/>
@@ -136,7 +126,7 @@
                 <NumberBox Header="Output Height" Width="140" Name="OutputHeight" ValueChanged="OutputSizeChanged" SpinButtonPlacementMode="Compact" LargeChange="20" RelativePanel.AlignHorizontalCenterWithPanel="True"/>
                 <NumberBox Header="Output Frame Rate" Width="140" Value="24" Name="OutputFrameRate" SpinButtonPlacementMode="Compact" LargeChange="20" RelativePanel.AlignRightWithPanel="True"/>
             </RelativePanel>
-            <CheckBox Grid.Row="3" Name="LockAspectRatioCheckBox" Content="Lock Aspect Ratio" IsChecked="True" Checked="LockAspectRatioChanged" Unchecked="LockAspectRatioChanged"/>
+            <CheckBox Grid.Row="3" Name="LockAspectRatioCheckBox" Content="Lock Aspect Ratio" Checked="LockAspectRatioChanged" Unchecked="LockAspectRatioChanged"/>
             <ListView Grid.Row="4" ItemsSource="{x:Bind transitions}" Margin="0,10" SelectionMode="None">
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
@@ -189,7 +179,7 @@
                             </Grid.Resources>
                             <ContentPresenter ContentTemplate="{StaticResource FrameRep}" Content="{x:Bind StartKeyFrame, Mode=OneWay}" Margin="0,0,5,0"/>
                             <ContentPresenter Grid.Column="1" ContentTemplate="{StaticResource FrameData}" Content="{x:Bind StartKeyFrame, Mode=OneWay}"/>
-                            <controls:TimespanTextBox Grid.Column="2" Value="{x:Bind Duration, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            <timeline:TimeSpanTextBox Grid.Column="2" Value="{x:Bind Duration, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                       ToolTipService.ToolTip="Duration"/>
                             <ContentPresenter Grid.Column="3" ContentTemplate="{StaticResource FrameData}" Content="{x:Bind EndKeyFrame, Mode=OneWay}"/>
                             <ContentPresenter Grid.Column="4" ContentTemplate="{StaticResource FrameRep}" Content="{x:Bind EndKeyFrame, Mode=OneWay}" Margin="5,0,0,0"/>

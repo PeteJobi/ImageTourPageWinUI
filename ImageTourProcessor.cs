@@ -121,7 +121,7 @@ namespace ImageTourPage
                     if (!Equals(transition.StartKeyFrame, lastKeyFrame))
                     {
                         lastFrame++;
-                        await GenerateFrame(transition.StartKeyFrame, lastFrame, timeCovered); //Generate first frame
+                        await GenerateFrame(transition.StartKeyFrame, lastFrame, isVideo ? timeCovered : TimeSpan.Zero); //Generate first frame
                         RecordProgress(lastFrame, 1);
                         await CheckPause();
                         var cancelPayload = CheckCanceled();
@@ -299,7 +299,7 @@ namespace ImageTourPage
             {
                 //if (string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) Console.WriteLine("N");
                 if(args.Data?.Contains("failed", StringComparison.OrdinalIgnoreCase) == true) Debug.WriteLine(args.Data);
-                //Debug.WriteLine(args.Data);
+                Debug.WriteLine(args.Data);
             });
         }
 
