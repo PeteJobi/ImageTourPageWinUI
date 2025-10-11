@@ -77,12 +77,7 @@ namespace ImageTour
             mediaPath = props.MediaPath;
             navigateTo = props.TypeToNavigateTo;
             MediaName.Text = Path.GetFileName(mediaPath);
-            if(isVideo)
-            {
-                Video.Source = MediaSource.CreateFromUri(new Uri(mediaPath));
-                Video.MediaPlayer.PlaybackSession.NaturalDurationChanged += PlaybackSessionOnNaturalDurationChanged;
-                Video.MediaPlayer.PlaybackSession.PlaybackStateChanged += PlaybackSession_PlaybackStateChanged;
-            }
+            if (isVideo) Video.Source = MediaSource.CreateFromUri(new Uri(mediaPath));
             else Image.Source = new BitmapImage(new Uri(mediaPath));
             base.OnNavigatedTo(e);
         }
@@ -127,62 +122,6 @@ namespace ImageTour
                 PanTransform.X += currentPoint.X - _lastPoint.X;
                 PanTransform.Y += currentPoint.Y - _lastPoint.Y;
                 _lastPoint = currentPoint;
-            }
-        }
-
-        private void PlaybackSessionOnNaturalDurationChanged(MediaPlaybackSession sender, object args)
-        {
-            DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Normal, () =>
-            {
-                VideoProgressSlider.Maximum = sender.NaturalDuration.TotalSeconds;
-                VideoProgressSlider.Value = 0;
-                SetVideoTime();
-            });
-        }
-
-        private async void PlaybackSession_PlaybackStateChanged(MediaPlaybackSession sender, object args)
-        {
-            if (sender.PlaybackState == MediaPlaybackState.Playing) await AnimateSeeker(sender);
-            else DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Normal, () => viewModel.IsPlaying = false);
-        }
-
-        private async Task AnimateSeeker(MediaPlaybackSession session)
-        {
-            const int frameTime24Fps = 1000 / 24;
-            while (session.PlaybackState == MediaPlaybackState.Playing)
-            {
-                if (DispatcherQueue == null) return;
-                DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, () =>
-                {
-                    videoProgressChangedByCode = true;
-                    VideoProgressSlider.Value = session.Position.TotalSeconds;
-                    videoProgressChangedByCode = false;
-                    SetVideoTime();
-                });
-                await Task.Delay(frameTime24Fps);
-            }
-        }
-
-        private void SetVideoTime() => VideoTime.Text = $@"{Video.MediaPlayer.PlaybackSession.Position:hh\:mm\:ss\.fff} / {Video.MediaPlayer.PlaybackSession.NaturalDuration:hh\:mm\:ss\.fff}";
-
-        private void VideoProgressSlider_OnValueChanged(object sender, RangeBaseValueChangedEventArgs e)
-        {
-            if (videoProgressChangedByCode) return;
-            Video.MediaPlayer.PlaybackSession.Position = TimeSpan.FromSeconds(e.NewValue);
-            SetVideoTime();
-        }
-
-        private void PlayPause(object sender, RoutedEventArgs e)
-        {
-            if (Video.MediaPlayer.PlaybackSession.PlaybackState == MediaPlaybackState.Playing)
-            {
-                Video.MediaPlayer.Pause();
-                viewModel.IsPlaying = false;
-            }
-            else
-            {
-                Video.MediaPlayer.Play();
-                viewModel.IsPlaying = true;
             }
         }
 
