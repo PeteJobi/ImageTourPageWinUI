@@ -9,10 +9,6 @@
     <Import_RootNamespace>ImageTourPage</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Page Include="$(MSBuildThisFileDirectory)Controls\TourTimespanTextBox.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
     <Page Include="$(MSBuildThisFileDirectory)ImageTourPage.xaml">
       <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
       <SubType>Designer</SubType>
@@ -33,9 +29,6 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)Controls\TourTimespanTextBox.xaml.cs">
-      <DependentUpon>TourTimespanTextBox.xaml</DependentUpon>
-    </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)ImageTourProcessor.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)ImageTourPage.xaml.cs">
       <DependentUpon>ImageTourPage.xaml</DependentUpon>
