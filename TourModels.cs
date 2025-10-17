@@ -5,6 +5,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text;
+using WinUIShared.Enums;
 
 namespace ImageTourPage
 {
@@ -195,10 +196,5 @@ namespace ImageTourPage
             foreach (var dep in alsoNotify) OnPropertyChanged(dep);
             return true;
         }
-    }
-
-    public enum OperationState
-    {
-        BeforeOperation, DuringOperation, AfterOperation
     }
 }

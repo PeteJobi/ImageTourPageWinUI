@@ -9,6 +9,7 @@
     xmlns:imageTour="using:ImageTourPage"
     xmlns:converters="using:CommunityToolkit.WinUI.Converters"
     xmlns:timeline="using:Timeline"
+    xmlns:controls="using:WinUIShared.Controls"
     mc:Ignorable="d">
     <Page.Resources>
         <ResourceDictionary>
@@ -21,11 +22,7 @@
             <converters:BoolToObjectConverter x:Key="TooltipY" TrueValue="Start Y" FalseValue="End Y"/>
             <converters:BoolToObjectConverter x:Key="TooltipWidth" TrueValue="Start Width" FalseValue="End Width"/>
             <converters:BoolToObjectConverter x:Key="TooltipHeight" TrueValue="Start Height" FalseValue="End Height"/>
-            <converters:BoolToObjectConverter x:Key="CloseOrCancelConverter" TrueValue="Close" FalseValue="Cancel"/>
-            <converters:BoolToObjectConverter x:Key="ResumeOrPauseConverter" TrueValue="Resume" FalseValue="Pause"/>
-            <converters:BoolToObjectConverter x:Key="ResumeOrPauseGlyphConverter" TrueValue="&#xE768;" FalseValue="&#xE784;"/>
             <converters:BoolNegationConverter x:Key="BoolNegationConverter" />
-            <converters:BoolToObjectConverter x:Key="PlayPauseGlyphConverter" TrueValue="&#xF8AE;" FalseValue="&#xF5B0;"/>
             <local:DoubleFormatter x:Key="DoubleFormatter"/>
         </ResourceDictionary>
     </Page.Resources>
@@ -63,47 +60,10 @@
         </Grid>
         <timeline:VideoControls Grid.Row="1" Grid.Column="0" Height="50" MediaPlayer="{x:Bind Video.MediaPlayer}" CurrentTimeEditable="True" ShowFractionalSeconds="True"
                                 Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}}" Margin="10,0"/>
-        <RelativePanel Visibility="{x:Bind viewModel.BeforeOperation, Mode=OneWay, Converter={StaticResource BoolToVisibilityConverter}, ConverterParameter=True}"
-               Grid.Row="2" Grid.Column="0" Padding="10">
-            <TextBlock Name="CurrentTransitionLabel"/>
-            <TextBlock Name="OverallTourProgressText" RelativePanel.AlignHorizontalCenterWith="OverallTourProgress"/>
-            <TextBlock Name="CurrentStatus" RelativePanel.AlignRightWith="OverallTourProgress"/>
-            <ProgressBar Name="OverallTourProgress" RelativePanel.AlignLeftWithPanel="True"
-                RelativePanel.Below="CurrentTransitionLabel" RelativePanel.LeftOf="CancelSplit" Margin="0,4,0,0"/>
-            <Button Name="CancelSplit" RelativePanel.AlignRightWithPanel="True" Margin="10,0,0,0" Width="120" Click="CancelOrClose_OnClick">
-                <FlyoutBase.AttachedFlyout>
-                    <Flyout x:Name="CancelFlyout">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Style="{ThemeResource BaseTextBlockStyle}" VerticalAlignment="Center">Cancel process?</TextBlock>
-                            <Button ToolTipService.ToolTip="Done" Margin="10,0,0,0" Click="CancelProcess">
-                                <FontIcon Glyph="&#xE8FB;" />
-                            </Button>
-                        </StackPanel>
-                    </Flyout>
-                </FlyoutBase.AttachedFlyout>
-                <StackPanel Orientation="Horizontal">
-                    <FontIcon Glyph="&#xE711;" Margin="0,0,10,0" />
-                    <TextBlock VerticalAlignment="Center" Text="{x:Bind viewModel.AfterOperation, Mode=OneWay, Converter={StaticResource CloseOrCancelConverter}}"/>
-                </StackPanel>
-            </Button>
-            <TextBlock Name="CurrentTourProgressText" RelativePanel.Above="CurrentTourProgress" RelativePanel.Below="OverallTourProgress"
-                RelativePanel.AlignHorizontalCenterWith="CurrentTourProgress" Margin="0,30,0,0"/>
-            <ProgressBar Name="CurrentTourProgress" RelativePanel.AlignLeftWithPanel="True"
-                RelativePanel.AlignBottomWithPanel="True" RelativePanel.LeftOf="PauseTour" Margin="0,4,0,0"/>
-            <Button Name="PauseTour" RelativePanel.AlignBottomWithPanel="True" RelativePanel.AlignRightWithPanel="True" Width="120" Margin="10,0,0,0"
-                Click="PauseOrViewTour_OnClick">
-                <Grid>
-                    <StackPanel Orientation="Horizontal" Visibility="{x:Bind viewModel.AfterOperation, Mode=OneWay}">
-                        <FontIcon Glyph="&#xE8A7;" Margin="0,0,10,0" />
-                        <TextBlock VerticalAlignment="Center" Text="View"/>
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Visibility="{x:Bind viewModel.DuringOperation, Mode=OneWay}">
-                        <FontIcon Glyph="{x:Bind viewModel.ProcessPaused, Mode=OneWay, Converter={StaticResource ResumeOrPauseGlyphConverter}}" Margin="0,0,10,0" />
-                        <TextBlock VerticalAlignment="Center" Text="{x:Bind viewModel.ProcessPaused, Mode=OneWay, Converter={StaticResource ResumeOrPauseConverter}}"/>
-                    </StackPanel>
-                </Grid>
-            </Button>
-        </RelativePanel>
+        <controls:ProcessProgress Grid.Row="2" x:Name="ProcessProgress" Grid.Column="0" State="{x:Bind viewModel.State, Mode=OneWay}"
+                                  PauseRequested="ProcessProgress_OnPauseRequested" ResumeRequested="ProcessProgress_OnResumeRequested"
+                                  ViewRequested="ProcessProgress_OnViewRequested" CancelRequested="ProcessProgress_OnCancelRequested"
+                                  CloseRequested="ProcessProgress_OnCloseRequested"/>
         <Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" Padding="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
