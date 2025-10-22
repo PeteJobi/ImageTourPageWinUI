@@ -60,10 +60,10 @@
         </Grid>
         <timeline:VideoControls Grid.Row="1" Grid.Column="0" Height="50" MediaPlayer="{x:Bind Video.MediaPlayer}" CurrentTimeEditable="True" ShowFractionalSeconds="True"
                                 Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}}" Margin="10,0"/>
-        <controls:ProcessProgress Grid.Row="2" x:Name="ProcessProgress" Grid.Column="0" State="{x:Bind viewModel.State, Mode=OneWay}"
+        <controls:ProcessProgress Grid.Row="2" x:Name="ProcessProgress" Grid.Column="0" State="{x:Bind viewModel.State, Mode=TwoWay}"
                                   PauseRequested="ProcessProgress_OnPauseRequested" ResumeRequested="ProcessProgress_OnResumeRequested"
                                   ViewRequested="ProcessProgress_OnViewRequested" CancelRequested="ProcessProgress_OnCancelRequested"
-                                  CloseRequested="ProcessProgress_OnCloseRequested"/>
+                                  CloseRequested="ProcessProgress_OnCloseRequested" Padding="10"/>
         <Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" Padding="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
