@@ -23,6 +23,7 @@ using Windows.Globalization.NumberFormatting;
 using Windows.Media;
 using Windows.Media.Core;
 using Windows.Media.Playback;
+using WinUIShared.Enums;
 using Orientation = DraggerResizer.Orientation;
 using Path = System.IO.Path;
 using Transition = ImageTourPage.Transition;
@@ -46,7 +47,7 @@ namespace ImageTour
         private const double animLineDashArray1 = 6;
         private const double animLineDashArray2 = 3;
         private const int defaultDurationInSeconds = 5;
-        private const double progressMax = 1_000_000;
+        private const double progressMax = 100;
         private bool videoProgressChangedByCode;
         private Dictionary<FrameworkElement, KeyFrameProps> frameProps = [];
         private Dictionary<KeyFrame, FrameworkElement> keyFrameToElement = [];
@@ -66,7 +67,6 @@ namespace ImageTour
             InitializeComponent();
             resizer = new DraggerResizer.DraggerResizer();
             viewModel = new TourMainModel();
-            OverallTourProgress.Maximum = CurrentTourProgress.Maximum = progressMax;
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -1036,27 +1036,27 @@ namespace ImageTour
             viewModel.State = OperationState.DuringOperation;
 
             var lastTransition = 0;
+            ProcessProgress.RightTextPrimary = "Generating frames...";
             var progress = new Progress<ImageTourProcessor.ValueProgress>(progress =>
             {
                 if (progress.CurrentTransition > transitionsToProcess.Length)
                 {
-                    CurrentTransitionLabel.Text = string.Empty;
-                    CurrentStatus.Text = "Merging frames...";
-                    CurrentTourProgress.Value = (double)progress.CurrentFrame / progress.TotalFrames * progressMax;
-                    CurrentTourProgressText.Text = $"{progress.CurrentFrame} / {progress.TotalFrames}";
+                    ProcessProgress.LeftTextPrimary = string.Empty;
+                    ProcessProgress.RightTextPrimary = "Merging frames...";
+                    ProcessProgress.ProgressSecondary = (double)progress.CurrentFrame / progress.TotalFrames * progressMax;
+                    ProcessProgress.CenterTextSecondary = $"{progress.CurrentFrame} / {progress.TotalFrames}";
                     return;
                 }
-                OverallTourProgress.Value = (double)progress.CurrentFrame / progress.TotalFrames * progressMax;
-                OverallTourProgressText.Text = $"{progress.CurrentFrame} / {progress.TotalFrames}";
-                CurrentTourProgress.Value = (double)progress.CurrentTransitionFrame / progress.TotalTransitionFrames * progressMax;
-                CurrentTourProgressText.Text = $"{progress.CurrentTransitionFrame} / {progress.TotalTransitionFrames}";
+                ProcessProgress.ProgressPrimary = (double)progress.CurrentFrame / progress.TotalFrames * progressMax;
+                ProcessProgress.CenterTextPrimary = $"{progress.CurrentFrame} / {progress.TotalFrames}";
+                ProcessProgress.ProgressSecondary = (double)progress.CurrentTransitionFrame / progress.TotalTransitionFrames * progressMax;
+                ProcessProgress.CenterTextSecondary = $"{progress.CurrentTransitionFrame} / {progress.TotalTransitionFrames}";
                 if (lastTransition != progress.CurrentTransition)
                 {
-                    CurrentStatus.Text = $"{progress.CurrentTransition} / {transitionsToProcess.Length}";
+                    ProcessProgress.RightTextPrimary = $"{progress.CurrentTransition} / {transitionsToProcess.Length}";
                     var startNum = progress.CurrentTransition * 2 - 1;
-                    CurrentTransitionLabel.Text = $"{startNum} -> {startNum + 1}";
+                    ProcessProgress.LeftTextPrimary = $"{startNum} -> {startNum + 1}";
                     lastTransition = progress.CurrentTransition;
-                    CurrentStatus.Text = "Generating frames...";
                 }
 
             });
@@ -1107,44 +1107,19 @@ namespace ImageTour
             };
         }
 
-        private void PauseOrViewTour_OnClick(object sender, RoutedEventArgs e)
+        private void ProcessProgress_OnPauseRequested(object? sender, EventArgs e) => tourProcessor.Pause();
+
+        private void ProcessProgress_OnResumeRequested(object? sender, EventArgs e) => tourProcessor.Resume();
+
+        private void ProcessProgress_OnViewRequested(object? sender, EventArgs e) => tourProcessor.ViewFile(outputFile);
+
+        private async void ProcessProgress_OnCancelRequested(object? sender, EventArgs e)
         {
-            if (viewModel.State == OperationState.AfterOperation)
-            {
-                tourProcessor.ViewFile(outputFile);
-                return;
-            }
-
-            if (viewModel.ProcessPaused)
-            {
-                tourProcessor.Resume();
-                viewModel.ProcessPaused = false;
-            }
-            else
-            {
-                tourProcessor.Pause();
-                viewModel.ProcessPaused = true;
-            }
-        }
-
-        private void CancelOrClose_OnClick(object sender, RoutedEventArgs e)
-        {
-            if (viewModel.State == OperationState.AfterOperation)
-            {
-                viewModel.State = OperationState.BeforeOperation;
-                return;
-            }
-
-            FlyoutBase.ShowAttachedFlyout((FrameworkElement)sender);
-        }
-
-        private async void CancelProcess(object sender, RoutedEventArgs e)
-        {
-            await tourProcessor.Cancel(outputFile);
+            await tourProcessor.Cancel(outputFile); 
             viewModel.State = OperationState.BeforeOperation;
-            viewModel.ProcessPaused = false;
-            CancelFlyout.Hide();
         }
+
+        private void ProcessProgress_OnCloseRequested(object? sender, EventArgs e) => viewModel.State = OperationState.BeforeOperation;
 
         private void GoBack(object sender, RoutedEventArgs e)
         {
