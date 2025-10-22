@@ -1077,7 +1077,7 @@ namespace ImageTour
                 }
 
                 viewModel.State = OperationState.AfterOperation;
-                CurrentStatus.Text = "Done";
+                ProcessProgress.RightTextPrimary = "Done";
                 outputFile = tempOutputFile;
             }
             catch (Exception ex)
