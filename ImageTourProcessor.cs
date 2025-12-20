@@ -8,12 +8,12 @@ using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using WinUIShared.Helpers;
 
 namespace ImageTourPage
 {
-    public class ImageTourProcessor
+    public class ImageTourProcessor(string ffmpegPath): Processor(ffmpegPath)
     {
-        readonly string ffmpegPath;
         private string folder;
         private string inputPath;
         private int width;
@@ -24,23 +24,15 @@ namespace ImageTourPage
         private int totalFrames;
         private int currentTransition;
         private Transition[] transitions;
-        private IProgress<ValueProgress>? progress;
         private int[] frameCountsPerTransition;
         private bool dontDeleteFrames;
-        private bool hasBeenKilled;
         private bool isVideo;
         private bool isGeneratingFrames;
         private bool isPaused;
         private bool isCanceled;
         private CancellationTokenSource pauseTokenSource = new();
-        private Process? currentProcess;
 
-        public ImageTourProcessor(string ffmpegPath)
-        {
-            this.ffmpegPath = ffmpegPath;
-        }
-
-        public async Task<Payload> Animate(string inputFileName, bool isVideo, int outputWidth, int outputHeight, double outputFps, IEnumerable<Transition> transitionSteps, Action<string> setFile, IProgress<ValueProgress>? progress = default, bool dontDeleteGeneratedFrames = false)
+        public async Task<Payload> Animate(string inputFileName, bool isVideo, int outputWidth, int outputHeight, double outputFps, IEnumerable<Transition> transitionSteps, bool dontDeleteGeneratedFrames = false)
         {
             inputPath = inputFileName;
             width = outputWidth;
@@ -49,7 +41,6 @@ namespace ImageTourPage
             this.isVideo = isVideo;
             transitions = transitionSteps.ToArray();
             frameCountsPerTransition = new int[transitions.Length];
-            this.progress = progress;
             dontDeleteFrames = dontDeleteGeneratedFrames;
             totalFrames = 0;
 
@@ -72,13 +63,6 @@ namespace ImageTourPage
                 return new Payload
                 {
                     ErrorMessage = "Both output dimensions should be divisible by 2"
-                };
-            }
-            if (!File.Exists(ffmpegPath))
-            {
-                return new Payload
-                {
-                    ErrorMessage = "FFMPEG is required to run this program. Put the ffmpeg executable in the same folder that contains this program"
                 };
             }
             if (!File.Exists(inputPath))
@@ -116,13 +100,18 @@ namespace ImageTourPage
             {
                 var timeCovered = TimeSpan.Zero;
                 isGeneratingFrames = true;
+                rightTextPrimary.Report("Generating frames...");
                 foreach (var transition in transitions)
                 {
+                    rightTextPrimary.Report($"{currentTransition} / {transitions.Length}");
+                    var startNum = currentTransition * 2 - 1;
+                    leftTextPrimary.Report($"{startNum} -> {startNum + 1}");
+
                     if (!Equals(transition.StartKeyFrame, lastKeyFrame))
                     {
                         lastFrame++;
                         await GenerateFrame(transition.StartKeyFrame, lastFrame, isVideo ? timeCovered : TimeSpan.Zero); //Generate first frame
-                        RecordProgress(lastFrame, 1);
+                        RecordFrameGenerationProgress(lastFrame, 1);
                         await CheckPause();
                         var cancelPayload = CheckCanceled();
                         if (cancelPayload != null) return (Payload)cancelPayload;
@@ -148,15 +137,12 @@ namespace ImageTourPage
 
             try
             {
-                var outputPath = GetOutputName(inputPath, setFile);
-                var x = $"-r {fps} -i \"{folder}/frame%08d.png\" -c:v libx265 -crf 18 -vf scale=out_color_matrix=bt709,format=yuv420p \"{outputPath}\"";
-                await StartProcess(ffmpegPath, x, null, (sender, args) =>
+                leftTextPrimary.Report(string.Empty);
+                rightTextPrimary.Report("Merging frames...");
+                var outputPath = GetOutputName(inputPath);
+                await StartFfmpegProcess($"-r {fps} -i \"{folder}/frame%08d.png\" -c:v libx265 -crf 18 -vf scale=out_color_matrix=bt709,format=yuv420p \"{outputPath}\"", (_, _, _, currentFrame) =>
                 {
-                    if (string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) return;
-                    Debug.WriteLine(args.Data);
-                    var matchCollection = Regex.Matches(args.Data, @"^frame=\s*(\d+).+");
-                    if (matchCollection.Count == 0) return;
-                    RecordProgress(int.Parse(matchCollection[0].Groups[1].Value), -1);
+                    RecordMergeProgress(currentFrame);
                 });
                 if (HasBeenKilled()) return ProcessCanceled();
             }
@@ -191,9 +177,9 @@ namespace ImageTourPage
 
         string GetOutputFolder(string path)
         {
-            string inputName = Path.GetFileNameWithoutExtension(path);
-            string parentFolder = Path.GetDirectoryName(path) ?? throw new NullReferenceException("The specified path is null");
-            string outputFolder = Path.Combine(parentFolder, $"{inputName}_Frames");
+            var inputName = Path.GetFileNameWithoutExtension(path);
+            var parentFolder = Path.GetDirectoryName(path) ?? throw new NullReferenceException("The specified path is null");
+            var outputFolder = Path.Combine(parentFolder, $"{inputName}_Frames");
 
             if (Directory.Exists(outputFolder))
             {
@@ -203,12 +189,11 @@ namespace ImageTourPage
             return outputFolder;
         }
 
-        private static string GetOutputName(string path, Action<string> setFile)
+        private string GetOutputName(string path)
         {
             var inputName = Path.GetFileNameWithoutExtension(path);
             var parentFolder = Path.GetDirectoryName(path) ?? throw new FileNotFoundException($"The specified path does not exist: {path}");
-            var outputFile = Path.Combine(parentFolder, $"{inputName}_TOURED.mp4");
-            setFile(outputFile);
+            outputFile = Path.Combine(parentFolder, $"{inputName}_TOURED.mp4");
             File.Delete(outputFile);
             return outputFile;
         }
@@ -217,7 +202,7 @@ namespace ImageTourPage
         {
             folder = GetOutputFolder(inputPath);
 
-            await StartProcess(ffmpegPath, $"-i \"{inputPath}\"", null, (sender, args) =>
+            await StartFfmpegProcess($"-i \"{inputPath}\"", (sender, args) =>
             {
                 if (string.IsNullOrWhiteSpace(args.Data)) return;
                 //Debug.WriteLine(args.Data);
@@ -283,7 +268,7 @@ namespace ImageTourPage
                     if (Equals(currentShift, lastShift)) CopyFrame(totalFramesSoFar + i - 1, 1);
                     else await GenerateFrame(currentShift, totalFramesSoFar + i);
                 }
-                RecordProgress(totalFramesSoFar + i, i + 1);
+                RecordFrameGenerationProgress(totalFramesSoFar + i, i + 1);
                 lastShift = currentShift;
                 await CheckPause();
                 if (isCanceled) return -1;
@@ -295,12 +280,7 @@ namespace ImageTourPage
         async Task GenerateFrame(KeyFrame keyFrame, int frameNumber, TimeSpan frameTimePoint = default)
         {
             var seek = frameTimePoint == TimeSpan.Zero ? string.Empty : $"-ss {frameTimePoint} ";
-            await StartProcess(ffmpegPath, $"{seek}-i \"{inputPath}\" -frames:v 1 -vf \"crop={keyFrame.Width}:{keyFrame.Height}:{keyFrame.X}:{keyFrame.Y}:exact=1,scale=w={width}:h={height}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp,format=rgb24,setsar=1\" \"{folder}/frame{frameNumber:D8}.png\"", null, (sender, args) =>
-            {
-                //if (string.IsNullOrWhiteSpace(args.Data) || hasBeenKilled) Console.WriteLine("N");
-                if(args.Data?.Contains("failed", StringComparison.OrdinalIgnoreCase) == true) Debug.WriteLine(args.Data);
-                Debug.WriteLine(args.Data);
-            });
+            await StartFfmpegProcess($"{seek}-i \"{inputPath}\" -frames:v 1 -vf \"crop={keyFrame.Width}:{keyFrame.Height}:{keyFrame.X}:{keyFrame.Y}:exact=1,scale=w={width}:h={height}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp,format=rgb24,setsar=1\" \"{folder}/frame{frameNumber:D8}.png\"");
         }
 
         void CopyFrame(int frameNumber, int amountOfCopies)
@@ -343,149 +323,20 @@ namespace ImageTourPage
             };
         }
 
-        void RecordProgress(int currentFrame, int currentTransitionFrame) => progress?.Report(new ValueProgress
+        void RecordFrameGenerationProgress(int currentFrame, int currentTransitionFrame)
         {
-            CurrentFrame = currentFrame, 
-            TotalFrames = totalFrames, 
-            CurrentTransition = currentTransition,
-            CurrentTransitionFrame = currentTransitionFrame,
-            TotalTransitionFrames = currentTransitionFrame == -1 ? -1 : frameCountsPerTransition[currentTransition - 1]
-        });
-
-        public void ViewFile(string file)
-        {
-            var info = new ProcessStartInfo();
-            info.FileName = "explorer";
-            info.Arguments = $"/e, /select, \"{file}\"";
-            Process.Start(info);
+            var totalTransitionFrames = frameCountsPerTransition[currentTransition - 1];
+            progressPrimary.Report((double)currentFrame / totalFrames * ProgressMax);
+            centerTextPrimary.Report($"{currentFrame} / {totalFrames}");
+            progressSecondary.Report((double)currentTransitionFrame / totalTransitionFrames * ProgressMax);
+            centerTextSecondary.Report($"{currentTransitionFrame} / {totalTransitionFrames}");
         }
 
-        //public async Task CreateVideoFromImage(string imagePath)
-        //{
-
-        //}
-
-        bool HasBeenKilled()
+        private void RecordMergeProgress(int currentFrame)
         {
-            if (!hasBeenKilled) return false;
-            hasBeenKilled = false;
-            return true;
+            progressSecondary.Report((double)currentFrame / totalFrames * ProgressMax);
+            centerTextSecondary.Report($"{currentFrame} / {totalFrames}");
         }
-
-        private static void SuspendProcess(Process process)
-        {
-            foreach (ProcessThread pT in process.Threads)
-            {
-                IntPtr pOpenThread = OpenThread(ThreadAccess.SUSPEND_RESUME, false, (uint)pT.Id);
-
-                if (pOpenThread == IntPtr.Zero)
-                {
-                    continue;
-                }
-
-                SuspendThread(pOpenThread);
-                CloseHandle(pOpenThread);
-            }
-        }
-
-        public async Task Cancel(string outputFile)
-        {
-            if (isGeneratingFrames)
-            {
-                isCanceled = true;
-                if (isPaused) Resume();
-                return;
-            }
-            if (currentProcess == null) return;
-            currentProcess.Kill();
-            await currentProcess.WaitForExitAsync();
-            hasBeenKilled = true;
-            currentProcess = null;
-            if (Directory.Exists(outputFile)) Directory.Delete(outputFile, true);
-        }
-
-        public void Pause()
-        {
-            if (isGeneratingFrames)
-            {
-                isPaused = true;
-                return;
-            }
-            if (currentProcess == null) return;
-            SuspendProcess(currentProcess);
-        }
-
-        public void Resume()
-        {
-            if (isGeneratingFrames && isPaused)
-            {
-                isPaused = false;
-                pauseTokenSource.Cancel();
-                pauseTokenSource = new CancellationTokenSource();
-                return;
-            }
-            if (currentProcess == null) return;
-            if (currentProcess.ProcessName == string.Empty)
-                return;
-
-            foreach (ProcessThread pT in currentProcess.Threads)
-            {
-                var pOpenThread = OpenThread(ThreadAccess.SUSPEND_RESUME, false, (uint)pT.Id);
-
-                if (pOpenThread == IntPtr.Zero)
-                {
-                    continue;
-                }
-
-                int suspendCount;
-                do
-                {
-                    suspendCount = ResumeThread(pOpenThread);
-                } while (suspendCount > 0);
-
-                CloseHandle(pOpenThread);
-            }
-        }
-
-        async Task StartProcess(string processFileName, string arguments, DataReceivedEventHandler? outputEventHandler, DataReceivedEventHandler? errorEventHandler)
-        {
-            Process ffmpeg = new()
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = processFileName,
-                    Arguments = arguments,
-                    CreateNoWindow = true,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true,
-                },
-                EnableRaisingEvents = true
-            };
-            ffmpeg.OutputDataReceived += outputEventHandler;
-            ffmpeg.ErrorDataReceived += errorEventHandler;
-            ffmpeg.Start();
-            ffmpeg.BeginErrorReadLine();
-            ffmpeg.BeginOutputReadLine();
-            currentProcess = ffmpeg;
-            await ffmpeg.WaitForExitAsync();
-            ffmpeg.Dispose();
-            currentProcess = null;
-        }
-
-        [Flags]
-        public enum ThreadAccess : int
-        {
-            SUSPEND_RESUME = (0x0002)
-        }
-
-        [DllImport("kernel32.dll")]
-        static extern IntPtr OpenThread(ThreadAccess dwDesiredAccess, bool bInheritHandle, uint dwThreadId);
-        [DllImport("kernel32.dll")]
-        static extern uint SuspendThread(IntPtr hThread);
-        [DllImport("kernel32.dll")]
-        static extern int ResumeThread(IntPtr hThread);
-        [DllImport("kernel32", CharSet = CharSet.Auto, SetLastError = true)]
-        static extern bool CloseHandle(IntPtr handle);
 
         public struct KeyFrame
         {
@@ -512,15 +363,6 @@ namespace ImageTourPage
             public bool Success { get; set; }
             public int FramesGenerated { get; set; }
             public string ErrorMessage { get; set; }
-        }
-
-        public struct ValueProgress
-        {
-            public int CurrentFrame { get; set; }
-            public int TotalFrames { get; set; }
-            public int CurrentTransition { get; set; }
-            public int CurrentTransitionFrame { get; set; }
-            public int TotalTransitionFrames { get; set; }
         }
     }
 }
