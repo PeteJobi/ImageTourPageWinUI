@@ -1033,70 +1033,10 @@ namespace ImageTour
                 EndKeyFrame = ModelToProcessorKeyframe(t.EndKeyFrame),
                 Duration = t.Duration
             }).ToArray();
-            viewModel.State = OperationState.DuringOperation;
 
-            var lastTransition = 0;
-            ProcessProgress.RightTextPrimary = "Generating frames...";
-            var progress = new Progress<ImageTourProcessor.ValueProgress>(progress =>
-            {
-                if (progress.CurrentTransition > transitionsToProcess.Length)
-                {
-                    ProcessProgress.LeftTextPrimary = string.Empty;
-                    ProcessProgress.RightTextPrimary = "Merging frames...";
-                    ProcessProgress.ProgressSecondary = (double)progress.CurrentFrame / progress.TotalFrames * progressMax;
-                    ProcessProgress.CenterTextSecondary = $"{progress.CurrentFrame} / {progress.TotalFrames}";
-                    return;
-                }
-                ProcessProgress.ProgressPrimary = (double)progress.CurrentFrame / progress.TotalFrames * progressMax;
-                ProcessProgress.CenterTextPrimary = $"{progress.CurrentFrame} / {progress.TotalFrames}";
-                ProcessProgress.ProgressSecondary = (double)progress.CurrentTransitionFrame / progress.TotalTransitionFrames * progressMax;
-                ProcessProgress.CenterTextSecondary = $"{progress.CurrentTransitionFrame} / {progress.TotalTransitionFrames}";
-                if (lastTransition != progress.CurrentTransition)
-                {
-                    ProcessProgress.RightTextPrimary = $"{progress.CurrentTransition} / {transitionsToProcess.Length}";
-                    var startNum = progress.CurrentTransition * 2 - 1;
-                    ProcessProgress.LeftTextPrimary = $"{startNum} -> {startNum + 1}";
-                    lastTransition = progress.CurrentTransition;
-                }
-
-            });
-
-            string? tempOutputFile = null;
-            outputFile = null;
-            try
-            {
-                var payload = await tourProcessor.Animate(mediaPath, isVideo, Convert.ToInt32(OutputWidth.Value), Convert.ToInt32(OutputHeight.Value), OutputFrameRate.Value,
-                    transitionsToProcess, SetOutputFile, progress, DontDeleteFrames.IsChecked ?? false);
-
-                if (viewModel.State == OperationState.BeforeOperation) return; //Canceled
-                if (!payload.Success)
-                {
-                    viewModel.State = OperationState.BeforeOperation;
-                    await ErrorAction(payload.ErrorMessage);
-                    return;
-                }
-
-                viewModel.State = OperationState.AfterOperation;
-                ProcessProgress.RightTextPrimary = "Done";
-                outputFile = tempOutputFile;
-            }
-            catch (Exception ex)
-            {
-                await ErrorAction(ex.Message);
-                viewModel.State = OperationState.BeforeOperation;
-            }
-
-            void SetOutputFile(string file)
-            {
-                tempOutputFile = file;
-            }
-
-            async Task ErrorAction(string message)
-            {
-                ErrorDialog.Title = "Tour operation failed";
-                ErrorDialog.Content = message;
-                await ErrorDialog.ShowAsync();
-            }
+            var processTask = tourProcessor.Animate(mediaPath, isVideo, Convert.ToInt32(OutputWidth.Value), Convert.ToInt32(OutputHeight.Value),
+                OutputFrameRate.Value, transitionsToProcess, DontDeleteFrames.IsChecked ?? false);
+            outputFile = await ProcessManager.StartProcess(processTask);
 
             ImageTourProcessor.KeyFrame ModelToProcessorKeyframe(KeyFrame keyframe) => new()
             {
@@ -1107,24 +1047,10 @@ namespace ImageTour
             };
         }
 
-        private void ProcessProgress_OnPauseRequested(object? sender, EventArgs e) => tourProcessor.Pause();
-
-        private void ProcessProgress_OnResumeRequested(object? sender, EventArgs e) => tourProcessor.Resume();
-
-        private void ProcessProgress_OnViewRequested(object? sender, EventArgs e) => tourProcessor.ViewFile(outputFile);
-
-        private async void ProcessProgress_OnCancelRequested(object? sender, EventArgs e)
-        {
-            await tourProcessor.Cancel(outputFile); 
-            viewModel.State = OperationState.BeforeOperation;
-        }
-
-        private void ProcessProgress_OnCloseRequested(object? sender, EventArgs e) => viewModel.State = OperationState.BeforeOperation;
-
         private void GoBack(object sender, RoutedEventArgs e)
         {
             if(isVideo) Video.MediaPlayer.Pause();
-            _ = tourProcessor.Cancel(outputFile);
+            _ = tourProcessor.Cancel();
             if (navigateTo == null) Frame.GoBack();
             else Frame.NavigateToType(Type.GetType(navigateTo), outputFile, new FrameNavigationOptions { IsNavigationStackEnabled = false });
         }
