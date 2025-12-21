@@ -1034,6 +1034,7 @@ namespace ImageTour
                 Duration = t.Duration
             }).ToArray();
 
+            outputFile = null;
             var processTask = tourProcessor.Animate(mediaPath, isVideo, Convert.ToInt32(OutputWidth.Value), Convert.ToInt32(OutputHeight.Value),
                 OutputFrameRate.Value, transitionsToProcess, DontDeleteFrames.IsChecked ?? false);
             outputFile = await ProcessManager.StartProcess(processTask);
