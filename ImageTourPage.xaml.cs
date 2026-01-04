@@ -74,6 +74,7 @@ namespace ImageTour
             var props = (TourProps)e.Parameter;
             tourProcessor = new ImageTourProcessor(props.FfmpegPath);
             isVideo = props.MediaPath.EndsWith(".mp4") || props.MediaPath.EndsWith(".mkv");
+            ((BindingProxy)Application.Current.Resources["GlobalBindingProxy"]).IsVideo = isVideo;
             mediaPath = props.MediaPath;
             navigateTo = props.TypeToNavigateTo;
             MediaName.Text = Path.GetFileName(mediaPath);
@@ -373,11 +374,13 @@ namespace ImageTour
             var keyFrameElement1 = AddNewKeyFrameElement(x, y, width, height);
             var keyFrameElement2 = AddNewKeyFrameElement(x, y, width, height);
             var lastTransitionNumber = transitions.Count * 2;
+            var lastTransEndTime = isVideo && transitions.Count > 0 ? transitions.Last().End : TimeSpan.Zero;
             var transition = new Transition
             {
                 StartKeyFrame = new KeyFrame(x, y, width, height, lastTransitionNumber + 1),
                 EndKeyFrame = new KeyFrame(x, y, width, height, lastTransitionNumber + 2),
-                Duration = TimeSpan.FromSeconds(defaultDurationInSeconds)
+                Start = lastTransEndTime,
+                End = TimeSpan.FromSeconds(defaultDurationInSeconds) + lastTransEndTime
             };
             var keyFrameProps1 = new KeyFrameProps
             {
@@ -443,11 +446,13 @@ namespace ImageTour
             endKeyFrameElement.DataContext = endKeyFrameProps.KeyFrameLabel;
             frameProps.Add(endKeyFrameElement, endKeyFrameProps);
             LinkKeyFrameElements(startKeyFrameElement, lastKeyFrameProps, endKeyFrameElement, endKeyFrameProps);
+            var lastTransEndTime = isVideo ? transitions.Last().End : TimeSpan.Zero;
             transitions.Add(new Transition
             {
                 StartKeyFrame = startFrame,
                 EndKeyFrame = endFrame,
-                Duration = TimeSpan.FromSeconds(defaultDurationInSeconds)
+                Start = lastTransEndTime,
+                End = TimeSpan.FromSeconds(defaultDurationInSeconds) + lastTransEndTime
             });
             CheckClumps(endKeyFrameElement);
         }
@@ -621,7 +626,7 @@ namespace ImageTour
                                 newEndProps.AnimLines = (newEndProps.AnimLines.From, newStartProps.AnimLines.From); //Link lines from 1 to 4 (instead of 1 to 2,3)
                                 UpdateAnimLinesAndCoords(keyFrameToElement[endTransition.EndKeyFrame]); //Update new lines for 4
                                 startTransition.EndKeyFrame = newEndProps.KeyFrame; //4 is now the EndKeyframe for transition 1 to 2
-                                startTransition.Duration += endTransition.Duration; //Transition 1 to 4 is now as long as 1 to 2 plus 3 to 4
+                                startTransition.End = isVideo ? endTransition.End : startTransition.End + endTransition.End; //Transition 1 to 4 is now as long as 1 to 2 plus 3 to 4
                                 newEndProps.KeyFrame.Number = newEndProps.KeyFrameLabel.Number = props.KeyFrame.Number; //Change 4 to 2
 
                                 //Remove frame 2,3
@@ -1031,7 +1036,8 @@ namespace ImageTour
             {
                 StartKeyFrame = ModelToProcessorKeyframe(t.StartKeyFrame),
                 EndKeyFrame = ModelToProcessorKeyframe(t.EndKeyFrame),
-                Duration = t.Duration
+                Start = t.Start,
+                End = t.End
             }).ToArray();
 
             outputFile = null;

@@ -4,11 +4,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:imageTourPage="using:ImageTourPage"
     xmlns:converters="using:CommunityToolkit.WinUI.Converters"
-    xmlns:imageTour="using:ImageTour"
-    xmlns:sys="using:System"
     x:Class="ImageTour.Resources.Templates">
 
     <x:Double x:Key="AutoWidthValue">NaN</x:Double>
+    <imageTourPage:BindingProxy x:Key="GlobalBindingProxy"/>
     <converters:BoolToObjectConverter x:Name="LabelWidthConverter" TrueValue="{StaticResource AutoWidthValue}" FalseValue="30"/>
     <converters:BoolToObjectConverter x:Name="LabelPaddingConverter" TrueValue="5,0,5,0" FalseValue="0"/>
     <converters:BoolToObjectConverter x:Name="HighlightedConverter" TrueValue="DeepSkyBlue" FalseValue="White"/>

@@ -98,7 +98,6 @@ namespace ImageTourPage
 
             try
             {
-                var timeCovered = TimeSpan.Zero;
                 isGeneratingFrames = true;
                 rightTextPrimary.Report("Generating frames...");
                 foreach (var transition in transitions)
@@ -110,18 +109,17 @@ namespace ImageTourPage
                     if (!Equals(transition.StartKeyFrame, lastKeyFrame))
                     {
                         lastFrame++;
-                        await GenerateFrame(transition.StartKeyFrame, lastFrame, isVideo ? timeCovered : TimeSpan.Zero); //Generate first frame
+                        await GenerateFrame(transition.StartKeyFrame, lastFrame, transition.Start); //Generate first frame
                         RecordFrameGenerationProgress(lastFrame, 1);
                         await CheckPause();
                         var cancelPayload = CheckCanceled();
                         if (cancelPayload != null) return (Payload)cancelPayload;
                     }
 
-                    var transitionFrameCount = await ProcessTransitionFrames(transition, lastFrame, timeCovered);
+                    var transitionFrameCount = await ProcessTransitionFrames(transition, lastFrame);
                     if (transitionFrameCount == -1) return (Payload)CheckCanceled();
                     lastFrame += transitionFrameCount;
                     lastKeyFrame = transition.EndKeyFrame;
-                    timeCovered += transition.Duration;
                     currentTransition++;
                 }
                 isGeneratingFrames = false;
@@ -234,7 +232,7 @@ namespace ImageTourPage
 
         int GetTransitionFrameCount(Transition transition) => Convert.ToInt32(fps * transition.Duration.TotalSeconds) - 1;
 
-        async Task<int> ProcessTransitionFrames(Transition transition, int totalFramesSoFar, TimeSpan totalTimeSoFar)
+        async Task<int> ProcessTransitionFrames(Transition transition, int totalFramesSoFar)
         {
             var totalFramesExcludingFirst = (double)GetTransitionFrameCount(transition);
 
@@ -261,7 +259,7 @@ namespace ImageTourPage
                 currentShift.Height = transition.StartKeyFrame.Height + heightDiff;
                 if (isVideo)
                 {
-                    await GenerateFrame(currentShift, totalFramesSoFar + i, totalTimeSoFar + frameTimeDiff);
+                    await GenerateFrame(currentShift, totalFramesSoFar + i, transition.Start + frameTimeDiff);
                 }
                 else
                 {
@@ -355,7 +353,9 @@ namespace ImageTourPage
         {
             public KeyFrame StartKeyFrame { get; set; }
             public KeyFrame EndKeyFrame { get; set; }
-            public TimeSpan Duration { get; set; }
+            public TimeSpan Start { get; set; }
+            public TimeSpan End { get; set; }
+            public TimeSpan Duration => End - Start;
         }
 
         public struct Payload

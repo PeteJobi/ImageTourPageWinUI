@@ -24,6 +24,7 @@
             <converters:BoolToObjectConverter x:Key="TooltipWidth" TrueValue="Start Width" FalseValue="End Width"/>
             <converters:BoolToObjectConverter x:Key="TooltipHeight" TrueValue="Start Height" FalseValue="End Height"/>
             <converters:BoolNegationConverter x:Key="BoolNegationConverter" />
+            <converters:BoolToVisibilityConverter x:Name="BoolToNegatedVisibilityConverter" TrueValue="Collapsed" FalseValue="Visible"/>
             <local:DoubleFormatter x:Key="DoubleFormatter"/>
         </ResourceDictionary>
     </Page.Resources>
@@ -138,8 +139,13 @@
                             </Grid.Resources>
                             <ContentPresenter ContentTemplate="{StaticResource FrameRep}" Content="{x:Bind StartKeyFrame, Mode=OneWay}" Margin="0,0,5,0"/>
                             <ContentPresenter Grid.Column="1" ContentTemplate="{StaticResource FrameData}" Content="{x:Bind StartKeyFrame, Mode=OneWay}"/>
-                            <textToTimeSpan:TimeSpanTextBox Grid.Column="2" Value="{x:Bind Duration, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                                      ToolTipService.ToolTip="Duration"/>
+                            <textToTimeSpan:TimeSpanTextBox Grid.Column="2" Value="{x:Bind End, Mode=TwoWay}" HorizontalAlignment="Center" ToolTipService.ToolTip="Duration" VerticalAlignment="Center"
+                                                            Visibility="{Binding Source={StaticResource GlobalBindingProxy}, Path=IsVideo, Converter={StaticResource BoolToNegatedVisibilityConverter}}"/>
+                            <StackPanel Grid.Column="2"
+                                        Visibility="{Binding Source={StaticResource GlobalBindingProxy}, Path=IsVideo, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <textToTimeSpan:TimeSpanTextBox Value="{x:Bind Start, Mode=TwoWay}" ToolTipService.ToolTip="Start Time" Height="25" MinHeight="0" FontSize="10"/>
+                                <textToTimeSpan:TimeSpanTextBox Value="{x:Bind End, Mode=TwoWay}" ToolTipService.ToolTip="End Time" Height="25" MinHeight="0" FontSize="10"/>
+                            </StackPanel>
                             <ContentPresenter Grid.Column="3" ContentTemplate="{StaticResource FrameData}" Content="{x:Bind EndKeyFrame, Mode=OneWay}"/>
                             <ContentPresenter Grid.Column="4" ContentTemplate="{StaticResource FrameRep}" Content="{x:Bind EndKeyFrame, Mode=OneWay}" Margin="5,0,0,0"/>
                         </Grid>

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.UI.Xaml;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -126,11 +127,17 @@ namespace ImageTourPage
             get => _endkeyframe;
             set => SetProperty(ref _endkeyframe, value);
         }
-        private TimeSpan _duration;
-        public TimeSpan Duration
+        private TimeSpan _start;
+        public TimeSpan Start
         {
-            get => _duration;
-            set => SetProperty(ref _duration, value);
+            get => _start;
+            set => SetProperty(ref _start, value);
+        }
+        private TimeSpan _end;
+        public TimeSpan End
+        {
+            get => _end;
+            set => SetProperty(ref _end, value);
         }
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -146,7 +153,7 @@ namespace ImageTourPage
 
         public override string ToString()
         {
-            return $@"{StartKeyFrame} -> {EndKeyFrame} <{Duration:hh\:mm\:ss\.fff}>";
+            return $@"{StartKeyFrame} -> {EndKeyFrame} <{Start:hh\:mm\:ss\.fff} - {End:hh\:mm\:ss\.fff}>";
         }
     }
 
@@ -196,5 +203,17 @@ namespace ImageTourPage
             foreach (var dep in alsoNotify) OnPropertyChanged(dep);
             return true;
         }
+    }
+
+    public class BindingProxy : DependencyObject
+    {
+        public bool IsVideo
+        {
+            get => (bool)GetValue(DataProperty);
+            set => SetValue(DataProperty, value);
+        }
+
+        public static readonly DependencyProperty DataProperty =
+            DependencyProperty.Register(nameof(IsVideo), typeof(object), typeof(BindingProxy), new PropertyMetadata(false));
     }
 }
