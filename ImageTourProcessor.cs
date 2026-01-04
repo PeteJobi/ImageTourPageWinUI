@@ -138,7 +138,8 @@ namespace ImageTourPage
                 leftTextPrimary.Report(string.Empty);
                 rightTextPrimary.Report("Merging frames...");
                 var outputPath = GetOutputName(inputPath);
-                await StartFfmpegProcess($"-r {fps} -i \"{folder}/frame%08d.png\" -c:v libx265 -crf 18 -vf scale=out_color_matrix=bt709,format=yuv420p \"{outputPath}\"", (_, _, _, currentFrame) =>
+                var audioArgs = isVideo ? GetAudioArguments(transitions) : string.Empty;
+                await StartFfmpegTranscodingProcess([$"{folder}/frame%08d.png", inputPath], outputPath, 18, null, $"-r {fps}", $"-map 0:v {audioArgs} -c:a aac -vf scale=out_color_matrix=bt709,format=yuv420p", (_, _, _, currentFrame) =>
                 {
                     RecordMergeProgress(currentFrame);
                 });
@@ -171,6 +172,32 @@ namespace ImageTourPage
         bool ValidateKeyFrame(KeyFrame keyFrame)
         {
             return keyFrame is { X: >= 0, Y: >= 0, Width: > 1, Height: > 1 } && keyFrame.X + keyFrame.Width <= totalWidth && keyFrame.Y + keyFrame.Height <= totalHeight;
+        }
+
+        string GetAudioArguments(Transition[] transitions)
+        {
+            var ranges = new List<(TimeSpan start, TimeSpan end)>();
+            foreach (var transition in transitions)
+            {
+                if(ranges.Count > 0 && transition.Start == ranges[^1].end)
+                {
+                    ranges[^1] = (ranges[^1].start, transition.End);
+                }
+                else ranges.Add((transition.Start, transition.End));
+            }
+
+            var atrimBuilder = new System.Text.StringBuilder();
+            var concatBuilder = new System.Text.StringBuilder();
+            for (var i = 0; i < ranges.Count; i++)
+            {
+                atrimBuilder.Append(
+                    $"[1:a]atrim=start={TimeSpanString(ranges[i].start)}:end={TimeSpanString(ranges[i].end)},asetpts=PTS-STARTPTS[a{i}];");
+                concatBuilder.Append($"[a{i}]");
+            }
+
+            return $"-filter_complex \"{atrimBuilder}{concatBuilder}concat=n={ranges.Count}:v=0:a=1[outA]\" -map \"[outA]\"";
+
+            static string TimeSpanString(TimeSpan timeSpan) => timeSpan.ToString(@"hh\:mm\:ss\.fff").Replace(":", @"\\:");
         }
 
         string GetOutputFolder(string path)
