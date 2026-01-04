@@ -10,6 +10,7 @@
     xmlns:converters="using:CommunityToolkit.WinUI.Converters"
     xmlns:timeline="using:Timeline"
     xmlns:controls="using:WinUIShared.Controls"
+    xmlns:textToTimeSpan="using:TextToTimeSpan"
     mc:Ignorable="d">
     <Page.Resources>
         <ResourceDictionary>
@@ -137,7 +138,7 @@
                             </Grid.Resources>
                             <ContentPresenter ContentTemplate="{StaticResource FrameRep}" Content="{x:Bind StartKeyFrame, Mode=OneWay}" Margin="0,0,5,0"/>
                             <ContentPresenter Grid.Column="1" ContentTemplate="{StaticResource FrameData}" Content="{x:Bind StartKeyFrame, Mode=OneWay}"/>
-                            <timeline:TimeSpanTextBox Grid.Column="2" Value="{x:Bind Duration, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            <textToTimeSpan:TimeSpanTextBox Grid.Column="2" Value="{x:Bind Duration, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"
                                                       ToolTipService.ToolTip="Duration"/>
                             <ContentPresenter Grid.Column="3" ContentTemplate="{StaticResource FrameData}" Content="{x:Bind EndKeyFrame, Mode=OneWay}"/>
                             <ContentPresenter Grid.Column="4" ContentTemplate="{StaticResource FrameRep}" Content="{x:Bind EndKeyFrame, Mode=OneWay}" Margin="5,0,0,0"/>
