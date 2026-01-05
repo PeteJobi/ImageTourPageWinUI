@@ -5,6 +5,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -32,7 +33,7 @@ namespace ImageTourPage
         private bool isCanceled;
         private CancellationTokenSource pauseTokenSource = new();
 
-        public async Task<Payload> Animate(string inputFileName, bool isVideo, int outputWidth, int outputHeight, double outputFps, IEnumerable<Transition> transitionSteps, bool dontDeleteGeneratedFrames = false)
+        public async Task Animate(string inputFileName, bool isVideo, int outputWidth, int outputHeight, double outputFps, IEnumerable<Transition> transitionSteps, bool useOneRunMethod, bool dontDeleteGeneratedFrames = false)
         {
             inputPath = inputFileName;
             width = outputWidth;
@@ -43,34 +44,27 @@ namespace ImageTourPage
             frameCountsPerTransition = new int[transitions.Length];
             dontDeleteFrames = dontDeleteGeneratedFrames;
             totalFrames = 0;
+            isCanceled = false;
 
             if (!transitions.Any())
             {
-                return new Payload
-                {
-                    ErrorMessage = "No transitions specified"
-                };
+                error("No transitions specified");
+                return;
             }
             if (width * height == 0)
             {
-                return new Payload
-                {
-                    ErrorMessage = "Both output dimensions should be greater than 0"
-                };
+                error("Both output dimensions should be greater than 0");
+                return;
             }
             if (width % 2 != 0 || height % 2 != 0)
             {
-                return new Payload
-                {
-                    ErrorMessage = "Both output dimensions should be divisible by 2"
-                };
+                error("Both output dimensions should be divisible by 2");
+                return;
             }
             if (!File.Exists(inputPath))
             {
-                return new Payload
-                {
-                    ErrorMessage = "The input file could not be found"
-                };
+                error("The input file could not be found");
+                return;
             }
 
             await Setup();
@@ -79,87 +73,152 @@ namespace ImageTourPage
             {
                 if (!ValidateKeyFrame(transition.StartKeyFrame))
                 {
-                    return new Payload
-                    {
-                        ErrorMessage = $"{transition.StartKeyFrame} exceeds the bounds of the input image"
-                    };
+                    error($"{transition.StartKeyFrame} exceeds the bounds of the input image");
+                    return;
                 }
                 if (!ValidateKeyFrame(transition.EndKeyFrame))
                 {
-                    return new Payload
-                    {
-                        ErrorMessage = $"{transition.EndKeyFrame} exceeds the bounds of the input image"
-                    };
+                    error($"{transition.EndKeyFrame} exceeds the bounds of the input image");
+                    return;
                 }
             }
 
-            var lastKeyFrame = new KeyFrame();
-            var lastFrame = 0;
 
-            try
+            await (useOneRunMethod ? OneRunMethod() : FrameExtractionMethod());
+            return;
+
+
+            async Task FrameExtractionMethod()
             {
-                isGeneratingFrames = true;
-                rightTextPrimary.Report("Generating frames...");
-                foreach (var transition in transitions)
-                {
-                    rightTextPrimary.Report($"{currentTransition} / {transitions.Length}");
-                    var startNum = currentTransition * 2 - 1;
-                    leftTextPrimary.Report($"{startNum} -> {startNum + 1}");
+                var lastKeyFrame = new KeyFrame();
+                var lastFrame = 0;
+                var lastEndTime = TimeSpan.MinValue;
 
-                    if (!Equals(transition.StartKeyFrame, lastKeyFrame))
+                try
+                {
+                    isGeneratingFrames = true;
+                    rightTextPrimary.Report("Generating frames...");
+                    foreach (var transition in transitions)
                     {
-                        lastFrame++;
-                        await GenerateFrame(transition.StartKeyFrame, lastFrame, transition.Start); //Generate first frame
-                        RecordFrameGenerationProgress(lastFrame, 1);
-                        await CheckPause();
-                        var cancelPayload = CheckCanceled();
-                        if (cancelPayload != null) return (Payload)cancelPayload;
+                        rightTextPrimary.Report($"{currentTransition} / {transitions.Length}");
+                        var startNum = currentTransition * 2 - 1;
+                        leftTextPrimary.Report($"{startNum} -> {startNum + 1}");
+
+                        if (!Equals(transition.StartKeyFrame, lastKeyFrame) || (isVideo && transition.Start != lastEndTime))
+                        {
+                            lastFrame++;
+                            await GenerateFrame(transition.StartKeyFrame, lastFrame, transition.Start); //Generate first frame
+                            RecordFrameGenerationProgress(lastFrame, 1);
+                            await CheckPause();
+                            var canceled = CheckCanceled();
+                            if (canceled) return;
+                        }
+
+                        var transitionFrameCount = await ProcessTransitionFrames(transition, lastFrame);
+                        if (transitionFrameCount == -1)
+                        {
+                            CheckCanceled();
+                            return;
+                        }
+                        lastFrame += transitionFrameCount;
+                        lastKeyFrame = transition.EndKeyFrame;
+                        lastEndTime = transition.End;
+                        currentTransition++;
                     }
-
-                    var transitionFrameCount = await ProcessTransitionFrames(transition, lastFrame);
-                    if (transitionFrameCount == -1) return (Payload)CheckCanceled();
-                    lastFrame += transitionFrameCount;
-                    lastKeyFrame = transition.EndKeyFrame;
-                    currentTransition++;
+                    isGeneratingFrames = false;
                 }
-                isGeneratingFrames = false;
-            }
-            catch (Exception e)
-            {
-                CleanUp();
-                return new Payload
+                catch (Exception e)
                 {
-                    ErrorMessage = $"An error occurred during frame generation: {e}"
-                };
+                    CleanUp();
+                    error($"An error occurred during frame generation: {e}");
+                    return;
+                }
+
+                try
+                {
+                    leftTextPrimary.Report(string.Empty);
+                    rightTextPrimary.Report("Merging frames...");
+
+                    var audioArgs = isVideo ? $"-filter_complex \"{GetAudioComplexFilter(transitions, true)}\"  -map \"[outA]\"" : string.Empty;
+                    await StartFfmpegTranscodingProcess([$"{folder}/frame%08d.png", inputPath], GetOutputName(inputPath), 18, null, $"-r {fps}", $"-map 0:v {audioArgs} -c:a aac -vf scale=out_color_matrix=bt709,format=yuv420p", (_, _, _, currentFrame) =>
+                    {
+                        RecordMergeProgress(currentFrame);
+                    });
+                    if (HasBeenKilled())
+                    {
+                        ProcessCanceled();
+                        return;
+                    }
+                }
+                catch (Exception e)
+                {
+                    CleanUp();
+                    error($"An error occurred during video creation: {e}");
+                    return;
+                }
+                CleanUp();
             }
 
-            try
+            async Task OneRunMethod()
             {
+                var vTrimScaleCropBuilder = new StringBuilder();
+                var vConcatBuilder = new StringBuilder();
+
+                for (var i = 0; i < transitions.Length; i++)
+                {
+                    var transition = transitions[i];
+                    var trim =
+                        $"start={TimeSpanString(transition.Start)}:end={TimeSpanString(transition.End)},setpts=PTS-STARTPTS";
+                    var widthChange = transition.EndKeyFrame.Width - transition.StartKeyFrame.Width;
+                    var heightChange = transition.EndKeyFrame.Height - transition.StartKeyFrame.Height;
+                    var xChange = transition.EndKeyFrame.X - transition.StartKeyFrame.X;
+                    var yChange = transition.EndKeyFrame.Y - transition.StartKeyFrame.Y;
+                    var (w1, h1, x1, y1) =
+                        (transition.StartKeyFrame.Width, transition.StartKeyFrame.Height, transition.StartKeyFrame.X,
+                            transition.StartKeyFrame.Y);
+                    var d = transition.Duration.TotalSeconds;
+                    var rangeArg = isVideo ? string.Empty : ":out_range=tv";
+                    var widthFactor = $"({outputWidth}/({w1}+{widthChange}*(t/{d})))";
+                    var heightFactor = $"({outputHeight}/({h1}+{heightChange}*(t/{d})))";
+                    var scale =
+                        $"'iw*{widthFactor}':'ih*{heightFactor}':eval=frame:out_color_matrix=bt709{rangeArg}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp";
+                    var crop =
+                        $"{outputWidth}:{outputHeight}:'min(max(0, ({x1}+{xChange}*(t/{d}))*{widthFactor}), (iw*{widthFactor})-{outputWidth})'" +
+                        $":'min(max(0, ({y1}+{yChange}*(t/{d}))*{heightFactor}), (ih*{heightFactor})-{outputHeight})'" +
+                        $":exact=1,scale={outputWidth}:{outputHeight}:flags=lanczos+accurate_rnd,format=rgb24,setsar=1";
+                    vTrimScaleCropBuilder.Append($"[0:v]format=rgb24,fps={fps},trim={trim},scale={scale},crop={crop}[v{i}];");
+                    vConcatBuilder.Append($"[v{i}]");
+                }
+
+                var audioFilter = isVideo ? GetAudioComplexFilter(transitions, false) : string.Empty;
+                var audioArgs = isVideo ? " -map \"[outA]\"" : string.Empty;
+                var filterComplex = $"{vTrimScaleCropBuilder}{vConcatBuilder}concat=n={transitions.Length}:v=1:a=0[outV];{audioFilter}";
+
                 leftTextPrimary.Report(string.Empty);
-                rightTextPrimary.Report("Merging frames...");
-                var outputPath = GetOutputName(inputPath);
-                var audioArgs = isVideo ? GetAudioArguments(transitions) : string.Empty;
-                await StartFfmpegTranscodingProcess([$"{folder}/frame%08d.png", inputPath], outputPath, 18, null, $"-r {fps}", $"-map 0:v {audioArgs} -c:a aac -vf scale=out_color_matrix=bt709,format=yuv420p", (_, _, _, currentFrame) =>
-                {
-                    RecordMergeProgress(currentFrame);
-                });
-                if (HasBeenKilled()) return ProcessCanceled();
-            }
-            catch (Exception e)
-            {
-                CleanUp();
-                return new Payload
-                {
-                    ErrorMessage = $"An error occurred during video creation: {e}"
-                };
-            }
-            CleanUp();
+                rightTextPrimary.Report("Generating video...");
+                RecordMergeProgress(0);
 
-            return new Payload
-            {
-                Success = true,
-                FramesGenerated = lastFrame
-            };
+                try
+                {
+                    await StartFfmpegTranscodingProcessDefaultQuality([inputPath], GetOutputName(inputPath), isVideo ? string.Empty : "-loop 1",
+                        $"-filter_complex_script pipe:0 -map \"[outV]\"{audioArgs} -c:a aac",
+                        (_, _, _, currentFrame) => { RecordMergeProgress(currentFrame); },
+                        intermediateHandler: async process =>
+                        {
+                            await process.StandardInput.WriteAsync(filterComplex);
+                            await process.StandardInput.FlushAsync();
+                        });
+                    if (HasBeenKilled())
+                    {
+                        ProcessCanceled();
+                    }
+                }
+                catch (Exception e)
+                {
+                    var errorMessage = $"An error occurred during video creation: {e}";
+                    error(errorMessage);
+                }
+            }
         }
 
         //public bool MediaIsVideo(string mediaPath)
@@ -174,7 +233,7 @@ namespace ImageTourPage
             return keyFrame is { X: >= 0, Y: >= 0, Width: > 1, Height: > 1 } && keyFrame.X + keyFrame.Width <= totalWidth && keyFrame.Y + keyFrame.Height <= totalHeight;
         }
 
-        string GetAudioArguments(Transition[] transitions)
+        string GetAudioComplexFilter(bool secondInput)
         {
             var ranges = new List<(TimeSpan start, TimeSpan end)>();
             foreach (var transition in transitions)
@@ -186,19 +245,19 @@ namespace ImageTourPage
                 else ranges.Add((transition.Start, transition.End));
             }
 
-            var atrimBuilder = new System.Text.StringBuilder();
-            var concatBuilder = new System.Text.StringBuilder();
+            var atrimBuilder = new StringBuilder();
+            var concatBuilder = new StringBuilder();
             for (var i = 0; i < ranges.Count; i++)
             {
                 atrimBuilder.Append(
-                    $"[1:a]atrim=start={TimeSpanString(ranges[i].start)}:end={TimeSpanString(ranges[i].end)},asetpts=PTS-STARTPTS[a{i}];");
+                    $"[{(secondInput ? "1" : "0")}:a]atrim=start={TimeSpanString(ranges[i].start)}:end={TimeSpanString(ranges[i].end)},asetpts=PTS-STARTPTS[a{i}];");
                 concatBuilder.Append($"[a{i}]");
             }
 
-            return $"-filter_complex \"{atrimBuilder}{concatBuilder}concat=n={ranges.Count}:v=0:a=1[outA]\" -map \"[outA]\"";
-
-            static string TimeSpanString(TimeSpan timeSpan) => timeSpan.ToString(@"hh\:mm\:ss\.fff").Replace(":", @"\\:");
+            return $"{atrimBuilder}{concatBuilder}concat=n={ranges.Count}:v=0:a=1[outA]";
         }
+
+        static string TimeSpanString(TimeSpan timeSpan) => timeSpan.ToString(@"hh\:mm\:ss\.fff").Replace(":", @"\\:");
 
         string GetOutputFolder(string path)
         {
@@ -305,7 +364,7 @@ namespace ImageTourPage
         async Task GenerateFrame(KeyFrame keyFrame, int frameNumber, TimeSpan frameTimePoint = default)
         {
             var seek = frameTimePoint == TimeSpan.Zero ? string.Empty : $"-ss {frameTimePoint} ";
-            await StartFfmpegProcess($"{seek}-i \"{inputPath}\" -frames:v 1 -vf \"crop={keyFrame.Width}:{keyFrame.Height}:{keyFrame.X}:{keyFrame.Y}:exact=1,scale=w={width}:h={height}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp,format=rgb24,setsar=1\" \"{folder}/frame{frameNumber:D8}.png\"");
+            await StartFfmpegProcess($"-i \"{inputPath}\" {seek}-frames:v 1 -vf \"crop={keyFrame.Width}:{keyFrame.Height}:{keyFrame.X}:{keyFrame.Y}:exact=1,scale=w={width}:h={height}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp,format=rgb24,setsar=1\" \"{folder}/frame{frameNumber:D8}.png\"");
         }
 
         void CopyFrame(int frameNumber, int amountOfCopies)
@@ -315,6 +374,12 @@ namespace ImageTourPage
             {
                 File.Copy(framePath, $"{folder}/frame{frameNumber + j:D8}.png");
             }
+        }
+
+        public override Task Cancel()
+        {
+            isCanceled = true;
+            return base.Cancel();
         }
 
         async Task CheckPause()
@@ -329,23 +394,22 @@ namespace ImageTourPage
             }
         }
 
-        Payload? CheckCanceled()
+        bool CheckCanceled()
         {
             if (isCanceled)
             {
                 isCanceled = false;
-                return ProcessCanceled();
+                ProcessCanceled();
+                return true;
             }
-            return null;
+            return false;
         }
 
-        Payload ProcessCanceled()
+        void ProcessCanceled()
         {
             CleanUp();
-            return new Payload
-            {
-                ErrorMessage = "Operation was canceled"
-            };
+            var errorMessage = "Operation was canceled";
+            error(errorMessage);
         }
 
         void RecordFrameGenerationProgress(int currentFrame, int currentTransitionFrame)
@@ -383,13 +447,6 @@ namespace ImageTourPage
             public TimeSpan Start { get; set; }
             public TimeSpan End { get; set; }
             public TimeSpan Duration => End - Start;
-        }
-
-        public struct Payload
-        {
-            public bool Success { get; set; }
-            public int FramesGenerated { get; set; }
-            public string ErrorMessage { get; set; }
         }
     }
 }
