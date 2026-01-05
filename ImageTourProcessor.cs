@@ -33,7 +33,7 @@ namespace ImageTourPage
         private bool isCanceled;
         private CancellationTokenSource pauseTokenSource = new();
 
-        public async Task Animate(string inputFileName, bool isVideo, int outputWidth, int outputHeight, double outputFps, IEnumerable<Transition> transitionSteps, bool useOneRunMethod, bool dontDeleteGeneratedFrames = false)
+        public async Task Animate(string inputFileName, bool isVideo, int outputWidth, int outputHeight, double outputFps, IEnumerable<Transition> transitionSteps, bool useSingleRunMethod, bool dontDeleteGeneratedFrames = false)
         {
             inputPath = inputFileName;
             width = outputWidth;
@@ -84,7 +84,7 @@ namespace ImageTourPage
             }
 
 
-            await (useOneRunMethod ? OneRunMethod() : FrameExtractionMethod());
+            await (useSingleRunMethod ? SingleRunMethod() : FrameExtractionMethod());
             return;
 
 
@@ -139,7 +139,7 @@ namespace ImageTourPage
                     leftTextPrimary.Report(string.Empty);
                     rightTextPrimary.Report("Merging frames...");
 
-                    var audioArgs = isVideo ? $"-filter_complex \"{GetAudioComplexFilter(transitions, true)}\"  -map \"[outA]\"" : string.Empty;
+                    var audioArgs = isVideo ? $"-filter_complex \"{GetAudioComplexFilter(true)}\"  -map \"[outA]\"" : string.Empty;
                     await StartFfmpegTranscodingProcess([$"{folder}/frame%08d.png", inputPath], GetOutputName(inputPath), 18, null, $"-r {fps}", $"-map 0:v {audioArgs} -c:a aac -vf scale=out_color_matrix=bt709,format=yuv420p", (_, _, _, currentFrame) =>
                     {
                         RecordMergeProgress(currentFrame);
@@ -159,7 +159,7 @@ namespace ImageTourPage
                 CleanUp();
             }
 
-            async Task OneRunMethod()
+            async Task SingleRunMethod()
             {
                 var vTrimScaleCropBuilder = new StringBuilder();
                 var vConcatBuilder = new StringBuilder();
@@ -190,19 +190,19 @@ namespace ImageTourPage
                     vConcatBuilder.Append($"[v{i}]");
                 }
 
-                var audioFilter = isVideo ? GetAudioComplexFilter(transitions, false) : string.Empty;
+                var audioFilter = isVideo ? GetAudioComplexFilter(false) : string.Empty;
                 var audioArgs = isVideo ? " -map \"[outA]\"" : string.Empty;
                 var filterComplex = $"{vTrimScaleCropBuilder}{vConcatBuilder}concat=n={transitions.Length}:v=1:a=0[outV];{audioFilter}";
 
                 leftTextPrimary.Report(string.Empty);
                 rightTextPrimary.Report("Generating video...");
-                RecordMergeProgress(0);
+                RecordSingleRunProgress(0);
 
                 try
                 {
                     await StartFfmpegTranscodingProcessDefaultQuality([inputPath], GetOutputName(inputPath), isVideo ? string.Empty : "-loop 1",
                         $"-filter_complex_script pipe:0 -map \"[outV]\"{audioArgs} -c:a aac",
-                        (_, _, _, currentFrame) => { RecordMergeProgress(currentFrame); },
+                        (_, _, _, currentFrame) => RecordSingleRunProgress(currentFrame),
                         intermediateHandler: async process =>
                         {
                             await process.StandardInput.WriteAsync(filterComplex);
@@ -425,6 +425,12 @@ namespace ImageTourPage
         {
             progressSecondary.Report((double)currentFrame / totalFrames * ProgressMax);
             centerTextSecondary.Report($"{currentFrame} / {totalFrames}");
+        }
+
+        private void RecordSingleRunProgress(int currentFrame)
+        {
+            progressPrimary.Report((double)currentFrame / totalFrames * ProgressMax);
+            centerTextPrimary.Report($"{currentFrame} / {totalFrames}");
         }
 
         public struct KeyFrame
