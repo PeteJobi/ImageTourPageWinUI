@@ -12,12 +12,6 @@ namespace ImageTourPage
 {
     public class TourMainModel: INotifyPropertyChanged
     {
-        private bool _isplaying;
-        public bool IsPlaying
-        {
-            get => _isplaying;
-            set => SetProperty(ref _isplaying, value);
-        }
         private OperationState _state;
         public OperationState State
         {
@@ -25,11 +19,11 @@ namespace ImageTourPage
             set => SetProperty(ref _state, value, alsoNotify: [nameof(BeforeOperation), nameof(DuringOperation), nameof(AfterOperation)]);
         }
 
-        private bool _processpaused;
-        public bool ProcessPaused
+        private GenerationMethod _selectedgenerationmethod;
+        public GenerationMethod SelectedGenerationMethod
         {
-            get => _processpaused;
-            set => SetProperty(ref _processpaused, value);
+            get => _selectedgenerationmethod;
+            set => SetProperty(ref _selectedgenerationmethod, value);
         }
 
         public bool BeforeOperation => State == OperationState.BeforeOperation;
@@ -203,6 +197,14 @@ namespace ImageTourPage
             foreach (var dep in alsoNotify) OnPropertyChanged(dep);
             return true;
         }
+    }
+
+    public class GenerationMethod
+    {
+        public bool IsSingleRun { get; set; }
+        public string Title { get; set; }
+
+        public override string ToString() => Title;
     }
 
     public class BindingProxy : DependencyObject

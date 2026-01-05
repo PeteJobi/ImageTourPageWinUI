@@ -59,6 +59,11 @@ namespace ImageTour
         private readonly DataTemplate keyFrameTemplate = (DataTemplate)Application.Current.Resources["KeyFrameTemplate"];
         private readonly DataTemplate multiKeyFrameLabelTemplate = (DataTemplate)Application.Current.Resources["MultiKeyFrameLabelTemplate"];
         private ObservableCollection<Transition> transitions = [];
+        private ObservableCollection<GenerationMethod> generationMethods =
+        [
+            new() { Title = "Single run", IsSingleRun = true },
+            new() { Title = "Frame extraction" }
+        ];
         private TourMainModel viewModel;
         private ImageTourProcessor tourProcessor;
 
@@ -66,7 +71,7 @@ namespace ImageTour
         {
             InitializeComponent();
             resizer = new DraggerResizer.DraggerResizer();
-            viewModel = new TourMainModel();
+            viewModel = new TourMainModel { SelectedGenerationMethod = generationMethods.First() };
         }
 
         protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -1053,7 +1058,7 @@ namespace ImageTour
 
             outputFile = null;
             var processTask = tourProcessor.Animate(mediaPath, isVideo, Convert.ToInt32(OutputWidth.Value), Convert.ToInt32(OutputHeight.Value),
-                OutputFrameRate.Value, transitionsToProcess, DontDeleteFrames.IsChecked ?? false);
+                OutputFrameRate.Value, transitionsToProcess, viewModel.SelectedGenerationMethod.IsSingleRun, DontDeleteFrames.IsChecked ?? false);
             outputFile = await ProcessManager.StartProcess(processTask);
 
             ImageTourProcessor.KeyFrame ModelToProcessorKeyframe(KeyFrame keyframe) => new()

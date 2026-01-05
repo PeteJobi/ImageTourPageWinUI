@@ -63,7 +63,7 @@
         <timeline:VideoControls Grid.Row="1" Grid.Column="0" Height="50" MediaPlayer="{x:Bind Video.MediaPlayer}" CurrentTimeEditable="True" ShowFractionalSeconds="True"
                                 Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}}" Margin="10,0"/>
         <controls:ProcessManager Grid.Row="2" x:Name="ProcessManager" Grid.Column="0" State="{x:Bind viewModel.State, Mode=TwoWay}" Padding="10"
-                                 Processor="{x:Bind tourProcessor}"/>
+                                 Processor="{x:Bind tourProcessor}" HardwareSelector="{x:Bind HardwareSelector}" OnlyPrimary="{x:Bind viewModel.SelectedGenerationMethod.IsSingleRun, Mode=OneWay}"/>
         <Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" Padding="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -71,6 +71,7 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -154,8 +155,27 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-            <CheckBox Grid.Row="5" Name="DontDeleteFrames" Content="Don't delete generated frames" Margin="0,0,0,5"/>
-            <Button Grid.Row="6" HorizontalAlignment="Stretch" Style="{StaticResource AccentButtonStyle}" Click="ProcessTour"
+            <StackPanel Grid.Row="5" Margin="0,0,0,5" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+                <TextBlock VerticalAlignment="Center">Generation method:</TextBlock>
+                <ListView ItemsSource="{x:Bind generationMethods}" SelectedItem="{x:Bind viewModel.SelectedGenerationMethod, Mode=TwoWay}" IsEnabled="{x:Bind viewModel.BeforeOperation, Mode=OneWay}">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Height="28"/>
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem" BasedOn="{StaticResource RadioButtonsItemStyle}">
+                            <Setter Property="MinHeight" Value="0"/>
+                            <Setter Property="MinWidth" Value="0"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
+            </StackPanel>
+            <CheckBox Grid.Row="6" Name="DontDeleteFrames" Content="Don't delete generated frames" Margin="0,0,0,5"
+                      Visibility="{x:Bind viewModel.SelectedGenerationMethod.IsSingleRun, Converter={StaticResource BoolToNegatedVisibilityConverter}, Mode=OneWay}"/>
+            <controls:HardwareSelector Grid.Row="6" Visibility="{x:Bind viewModel.SelectedGenerationMethod.IsSingleRun, Mode=OneWay}" Margin="0,0,0,5"
+                                       x:Name="HardwareSelector"/>
+            <Button Grid.Row="7" HorizontalAlignment="Stretch" Style="{StaticResource AccentButtonStyle}" Click="ProcessTour"
                     IsEnabled="{x:Bind viewModel.DuringOperation, Mode=OneWay, Converter={StaticResource BoolNegationConverter}}">
                 <Grid>
                     <StackPanel Orientation="Horizontal" Spacing="10">
