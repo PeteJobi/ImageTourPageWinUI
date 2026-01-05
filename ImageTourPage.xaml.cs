@@ -962,6 +962,17 @@ namespace ImageTour
             }
         }
 
+        private void SetTimeToCurrentVideoTime(object sender, RoutedEventArgs e)
+        {
+            if (!isVideo) return;
+            var menuItem = (ToggleMenuFlyoutItem)sender;
+            var keyframe = (KeyFrame)menuItem.DataContext;
+            var transition = transitions.First(t => t.StartKeyFrame == keyframe || t.EndKeyFrame == keyframe);
+            var currentTime = Video.MediaPlayer.PlaybackSession.Position;
+            if(keyframe == transition.StartKeyFrame) transition.Start = currentTime;
+            else transition.End = currentTime;
+        }
+
         private void OutputSizeChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
         {
             foreach (var keyframeElement in frameProps.Keys)
