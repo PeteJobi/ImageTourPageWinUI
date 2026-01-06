@@ -57,8 +57,8 @@ namespace ImageTour
         private string? outputFile;
         private string mediaPath;
         private bool isVideo;
-        private readonly DataTemplate keyFrameTemplate = (DataTemplate)Application.Current.Resources["KeyFrameTemplate"];
-        private readonly DataTemplate multiKeyFrameLabelTemplate = (DataTemplate)Application.Current.Resources["MultiKeyFrameLabelTemplate"];
+        private readonly DataTemplate keyFrameTemplate;
+        private readonly DataTemplate multiKeyFrameLabelTemplate;
         private ObservableCollection<Transition> transitions = [];
         private ObservableCollection<GenerationMethod> generationMethods =
         [
@@ -72,6 +72,8 @@ namespace ImageTour
         {
             InitializeComponent();
             resizer = new DraggerResizer.DraggerResizer();
+            keyFrameTemplate = (DataTemplate)Resources["KeyFrameTemplate"];
+            multiKeyFrameLabelTemplate = (DataTemplate)Resources["MultiKeyFrameLabelTemplate"];
             viewModel = new TourMainModel { SelectedGenerationMethod = generationMethods.First() };
         }
 
@@ -80,7 +82,7 @@ namespace ImageTour
             var props = (TourProps)e.Parameter;
             tourProcessor = new ImageTourProcessor(props.FfmpegPath);
             isVideo = props.MediaPath.EndsWith(".mp4") || props.MediaPath.EndsWith(".mkv");
-            ((BindingProxy)Application.Current.Resources["GlobalBindingProxy"]).IsVideo = isVideo;
+            ((BindingProxy)Resources["GlobalBindingProxy"]).IsVideo = isVideo;
             mediaPath = props.MediaPath;
             navigateTo = props.TypeToNavigateTo;
             HardwareSelector.SelectedGpu = props.Gpu;
@@ -253,7 +255,7 @@ namespace ImageTour
         {
             var line = new Line
             {
-                Stroke = (SolidColorBrush)Application.Current.Resources["AnimLineColour"],
+                Stroke = (SolidColorBrush)Resources["AnimLineColour"],
                 StrokeThickness = 2,
                 StrokeDashArray = [animLineDashArray1, animLineDashArray2],
                 Opacity = 0.2

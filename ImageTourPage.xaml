@@ -11,12 +11,15 @@
     xmlns:timeline="using:Timeline"
     xmlns:controls="using:WinUIShared.Controls"
     xmlns:textToTimeSpan="using:TextToTimeSpan"
+    xmlns:resources="using:ImageTour.Resources"
     mc:Ignorable="d">
     <Page.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="ms-appx:///Resources/TourTemplateOverrides.xaml" />
+                <resources:Templates/>
             </ResourceDictionary.MergedDictionaries>
+            <SolidColorBrush Color="White" x:Key="AnimLineColour"></SolidColorBrush>
             <converters:BoolToObjectConverter x:Name="IncorrectARConverter" TrueValue="{ThemeResource SystemFillColorCautionBackgroundBrush}"
                                               FalseValue="{ThemeResource TextControlBackground}"/>
             <converters:BoolToObjectConverter x:Key="TooltipX" TrueValue="Start X" FalseValue="End X"/>
