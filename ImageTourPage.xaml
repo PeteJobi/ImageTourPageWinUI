@@ -171,7 +171,7 @@
                     </ListView.ItemContainerStyle>
                 </ListView>
             </StackPanel>
-            <CheckBox Grid.Row="6" Name="DontDeleteFrames" Content="Don't delete generated frames" Margin="0,0,0,5"
+            <CheckBox Grid.Row="6" Name="DontDeleteFrames" Content="Don't delete extracted frames" Margin="0,0,0,5"
                       Visibility="{x:Bind viewModel.SelectedGenerationMethod.IsSingleRun, Converter={StaticResource BoolToNegatedVisibilityConverter}, Mode=OneWay}"/>
             <controls:HardwareSelector Grid.Row="6" Visibility="{x:Bind viewModel.SelectedGenerationMethod.IsSingleRun, Mode=OneWay}" Margin="0,0,0,5"
                                        x:Name="HardwareSelector"/>

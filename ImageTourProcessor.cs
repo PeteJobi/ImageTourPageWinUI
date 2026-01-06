@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using WinUIShared.Controls;
 using WinUIShared.Helpers;
 
 namespace ImageTourPage
@@ -186,7 +187,8 @@ namespace ImageTourPage
                         $"{outputWidth}:{outputHeight}:'min(max(0, ({x1}+{xChange}*(t/{d}))*{widthFactor}), (iw*{widthFactor})-{outputWidth})'" +
                         $":'min(max(0, ({y1}+{yChange}*(t/{d}))*{heightFactor}), (ih*{heightFactor})-{outputHeight})'" +
                         $":exact=1,scale={outputWidth}:{outputHeight}:flags=lanczos+accurate_rnd,format=rgb24,setsar=1";
-                    vTrimScaleCropBuilder.Append($"[0:v]format=rgb24,fps={fps},trim={trim},scale={scale},crop={crop}[v{i}];");
+                    var (hwDownArgs, hwUpArgs) = isVideo ? GpuInfo.FilterParams(gpuInfo) : (string.Empty, string.Empty);
+                    vTrimScaleCropBuilder.Append($"[0:v]{hwDownArgs}format=rgb24,fps={fps},trim={trim},scale={scale},crop={crop}{hwUpArgs}[v{i}];");
                     vConcatBuilder.Append($"[v{i}]");
                 }
 
@@ -200,8 +202,9 @@ namespace ImageTourPage
 
                 try
                 {
+                    EnableHardwareDecoding(isVideo);
                     await StartFfmpegTranscodingProcessDefaultQuality([inputPath], GetOutputName(inputPath), isVideo ? string.Empty : "-loop 1",
-                        $"-filter_complex_script pipe:0 -map \"[outV]\"{audioArgs} -c:a aac",
+                        $"-/filter_complex pipe:0 -map \"[outV]\"{audioArgs} -c:a aac",
                         (_, _, _, currentFrame) => RecordSingleRunProgress(currentFrame),
                         intermediateHandler: async process =>
                         {

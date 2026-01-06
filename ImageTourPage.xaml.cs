@@ -23,6 +23,7 @@ using Windows.Globalization.NumberFormatting;
 using Windows.Media;
 using Windows.Media.Core;
 using Windows.Media.Playback;
+using WinUIShared.Controls;
 using WinUIShared.Enums;
 using Orientation = DraggerResizer.Orientation;
 using Path = System.IO.Path;
@@ -82,6 +83,7 @@ namespace ImageTour
             ((BindingProxy)Application.Current.Resources["GlobalBindingProxy"]).IsVideo = isVideo;
             mediaPath = props.MediaPath;
             navigateTo = props.TypeToNavigateTo;
+            HardwareSelector.SelectedGpu = props.Gpu;
             MediaName.Text = Path.GetFileName(mediaPath);
             if (isVideo) Video.Source = MediaSource.CreateFromUri(new Uri(mediaPath));
             else Image.Source = new BitmapImage(new Uri(mediaPath));
@@ -1102,6 +1104,7 @@ namespace ImageTour
         public string FfmpegPath { get; set; }
         public string MediaPath { get; set; }
         public string? TypeToNavigateTo { get; set; }
+        public GpuInfo? Gpu { get; set; }
     }
 
     public class DoubleFormatter: INumberFormatter2, INumberParser
