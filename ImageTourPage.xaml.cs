@@ -25,6 +25,7 @@ using Windows.Media.Core;
 using Windows.Media.Playback;
 using WinUIShared.Controls;
 using WinUIShared.Enums;
+using WinUIShared.Helpers;
 using Orientation = DraggerResizer.Orientation;
 using Path = System.IO.Path;
 using Transition = ImageTourPage.Transition;
@@ -48,7 +49,6 @@ namespace ImageTour
         private const double animLineDashArray1 = 6;
         private const double animLineDashArray2 = 3;
         private const int defaultDurationInSeconds = 5;
-        private const double progressMax = 100;
         private bool videoProgressChangedByCode;
         private Dictionary<FrameworkElement, KeyFrameProps> frameProps = [];
         private Dictionary<KeyFrame, FrameworkElement> keyFrameToElement = [];
@@ -81,9 +81,10 @@ namespace ImageTour
         {
             var props = (TourProps)e.Parameter;
             tourProcessor = new ImageTourProcessor(props.FfmpegPath);
-            isVideo = props.MediaPath.EndsWith(".mp4") || props.MediaPath.EndsWith(".mkv");
-            ((BindingProxy)Resources["GlobalBindingProxy"]).IsVideo = isVideo;
             mediaPath = props.MediaPath;
+            var lowerCaseExt = mediaPath[^3..].ToLower();
+            isVideo = lowerCaseExt is "mp4" or "mkv" or "mov";
+            ((BindingProxy)Resources["GlobalBindingProxy"]).IsVideo = isVideo;
             navigateTo = props.TypeToNavigateTo;
             HardwareSelector.SelectedGpu = props.Gpu;
             MediaName.Text = Path.GetFileName(mediaPath);
