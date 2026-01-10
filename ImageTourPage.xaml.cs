@@ -87,8 +87,8 @@ namespace ImageTour
             navigateTo = props.TypeToNavigateTo;
             HardwareSelector.SelectedGpu = props.Gpu;
             MediaName.Text = Path.GetFileName(mediaPath);
-            if (isVideo) Video.Source = MediaSource.CreateFromUri(new Uri(mediaPath));
-            else Image.Source = new BitmapImage(new Uri(mediaPath));
+            if (isVideo) Video.Source = MediaSource.CreateFromUri(new Uri(Processor.GetSafePath(mediaPath)));
+            else Image.Source = new BitmapImage(new Uri(Processor.GetSafePath(mediaPath)));
             base.OnNavigatedTo(e);
         }
 
