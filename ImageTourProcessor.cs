@@ -68,7 +68,7 @@ namespace ImageTourPage
                 return;
             }
 
-            await Setup();
+            await Setup(useSingleRunMethod);
 
             foreach (var transition in transitions)
             {
@@ -285,9 +285,9 @@ namespace ImageTourPage
             return outputFile;
         }
 
-        async Task Setup()
+        async Task Setup(bool useSingleRunMethod)
         {
-            folder = GetOutputFolder(inputPath);
+            if(!useSingleRunMethod) folder = GetOutputFolder(inputPath);
 
             await StartFfmpegProcess($"-i \"{inputPath}\"", (sender, args) =>
             {
