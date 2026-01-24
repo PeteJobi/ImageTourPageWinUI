@@ -141,10 +141,13 @@ namespace ImageTourPage
                     rightTextPrimary.Report("Merging frames...");
 
                     var audioArgs = isVideo ? $"-filter_complex \"{GetAudioComplexFilter(true)}\"  -map \"[outA]\"" : string.Empty;
+                    var currGpu = gpuInfo;
+                    DisableHardwareAccel(); //Disable hardware acceleration
                     await StartFfmpegTranscodingProcess([$"{folder}/frame%08d.png", inputPath], GetOutputName(inputPath), 18, null, $"-r {fps}", $"-map 0:v {audioArgs} -c:a aac -vf scale=out_color_matrix=bt709,format=yuv420p", (_, _, _, currentFrame) =>
                     {
                         RecordMergeProgress(currentFrame);
                     });
+                    EnableHardwareAccelParams(currGpu);
                     if (HasBeenKilled())
                     {
                         ProcessCanceled();
