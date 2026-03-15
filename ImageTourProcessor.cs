@@ -165,6 +165,7 @@ namespace ImageTourPage
 
             async Task SingleRunMethod()
             {
+                var gpuPixelFormat = isVideo ? await GetGpuPixelFormat(inputPath) : string.Empty;
                 var vTrimScaleCropBuilder = new StringBuilder();
                 var vConcatBuilder = new StringBuilder();
 
@@ -190,7 +191,7 @@ namespace ImageTourPage
                         $"{outputWidth}:{outputHeight}:'min(max(0, ({x1}+{xChange}*(t/{d}))*{widthFactor}), (iw*{widthFactor})-{outputWidth})'" +
                         $":'min(max(0, ({y1}+{yChange}*(t/{d}))*{heightFactor}), (ih*{heightFactor})-{outputHeight})'" +
                         $":exact=1,scale={outputWidth}:{outputHeight}:flags=lanczos+accurate_rnd,setsar=1";
-                    var (hwDownArgs, hwUpArgs) = isVideo ? GpuInfo.FilterParams(gpuInfo) : (string.Empty, string.Empty);
+                    var (hwDownArgs, hwUpArgs) = isVideo ? GpuInfo.FilterParams(gpuInfo, gpuPixelFormat) : (string.Empty, string.Empty);
                     vTrimScaleCropBuilder.Append($"[0:v]{hwDownArgs}format=rgb24,fps={fps},trim={trim},scale={scale},crop={crop}{hwUpArgs}[v{i}];");
                     vConcatBuilder.Append($"[v{i}]");
                 }
