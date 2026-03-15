@@ -14,7 +14,7 @@ using WinUIShared.Helpers;
 
 namespace ImageTourPage
 {
-    public class ImageTourProcessor(string ffmpegPath): Processor(ffmpegPath)
+    public class ImageTourProcessor(string ffmpegPath): Processor(ffmpegPath, new FileLogger.FileLogger($"{nameof(ReelBox)}/Tour"))
     {
         private string folder;
         private string inputPath;
@@ -212,6 +212,7 @@ namespace ImageTourPage
                         (_, _, _, currentFrame) => RecordSingleRunProgress(currentFrame),
                         intermediateHandler: async process =>
                         {
+                            logger.Log($"FilterComplex: {filterComplex}");
                             await process.StandardInput.WriteAsync(filterComplex);
                             await process.StandardInput.FlushAsync();
                         });
