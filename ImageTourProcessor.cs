@@ -14,7 +14,7 @@ using WinUIShared.Helpers;
 
 namespace ImageTourPage
 {
-    public class ImageTourProcessor(string ffmpegPath): Processor(ffmpegPath, new FileLogger.FileLogger($"{nameof(ReelBox)}/Tour"))
+    public class ImageTourProcessor(string ffmpegPath): Processor(ffmpegPath, new FileLogger.FileLogger("ReelBox/Tour"))
     {
         private string folder;
         private string inputPath;
