@@ -146,8 +146,24 @@ namespace ImageTour
                 BeforeResizing = (point, _) => new Point(point.X / ZoomTransform.ScaleX, point.Y / ZoomTransform.ScaleY),
                 AfterDragging = newRect => UpdateAnimLinesAndCoords(owner, newRect),
                 AfterResizing = (newRect, _) => UpdateAnimLinesAndCoords(owner, newRect),
-                DragCompleted = () => { userIsHandlingFrames = false; CheckClumps(owner); },
-                ResizeCompleted = _ => { userIsHandlingFrames = false; CheckAspectRatio(owner); }
+                DragCompleted = () =>
+                {
+                    var keyFrame = frameProps[owner].KeyFrame;
+                    var roundedLeft = double.Round(keyFrame.X);
+                    var roundedTop = double.Round(keyFrame.Y);
+                    resizer.PositionElement(owner, roundedLeft, roundedTop);
+                    UpdateAnimLinesAndCoords(owner, new Rect(roundedLeft, roundedTop, keyFrame.Width, keyFrame.Height));
+                    userIsHandlingFrames = false; CheckClumps(owner);
+                },
+                ResizeCompleted = _ =>
+                {
+                    var keyFrame = frameProps[owner].KeyFrame;
+                    var roundedWidth = double.Round(keyFrame.Width);
+                    var roundedHeight = double.Round(keyFrame.Height);
+                    resizer.ResizeElement(owner, roundedWidth, roundedHeight);
+                    UpdateAnimLinesAndCoords(owner, new Rect(keyFrame.X, keyFrame.Y, roundedWidth, roundedHeight));
+                    userIsHandlingFrames = false; CheckAspectRatio(owner);
+                }
             };
         }
 
