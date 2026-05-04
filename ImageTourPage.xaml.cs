@@ -990,15 +990,24 @@ namespace ImageTour
             }
         }
 
-        private void SetTimeToCurrentVideoTime(object sender, RoutedEventArgs e)
+        private void SetFrameTimeToCurrentVideoTime(object sender, RoutedEventArgs e)
         {
             if (!isVideo) return;
-            var menuItem = (ToggleMenuFlyoutItem)sender;
+            var menuItem = (MenuFlyoutItem)sender;
             var keyframe = (KeyFrame)menuItem.DataContext;
             var transition = transitions.First(t => t.StartKeyFrame == keyframe || t.EndKeyFrame == keyframe);
             var currentTime = Video.MediaPlayer.PlaybackSession.Position;
             if(keyframe == transition.StartKeyFrame) transition.Start = currentTime;
             else transition.End = currentTime;
+        }
+
+        private void SetCurrentVideoTimeToFrameTime(object sender, RoutedEventArgs e)
+        {
+            if (!isVideo) return;
+            var menuItem = (MenuFlyoutItem)sender;
+            var keyframe = (KeyFrame)menuItem.DataContext;
+            var transition = transitions.First(t => t.StartKeyFrame == keyframe || t.EndKeyFrame == keyframe);
+            Video.MediaPlayer.PlaybackSession.Position = keyframe == transition.StartKeyFrame ? transition.Start : transition.End;
         }
 
         private void StepBackClicked(object sender, RoutedEventArgs e) => Video.MediaPlayer.StepBackwardOneFrame();
