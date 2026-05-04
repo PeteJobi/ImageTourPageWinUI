@@ -327,6 +327,7 @@ namespace ImageTour
 
         private void Video_OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
+            if (transitions.Any()) return;
             SizeRetrieved(e.NewSize.Width, e.NewSize.Height);
         }
 
@@ -337,6 +338,7 @@ namespace ImageTour
 
         private void SizeRetrieved(double width, double height)
         {
+            //Todo: Delete existing frames and transitions. For some reason, Video_OnSizeChanged() gets called multiple times when loading a video, and we only want to initialize once.
             ContentCanvas.Width = width;
             ContentCanvas.Height = height;
             const int defaultSize = 500;
@@ -345,7 +347,7 @@ namespace ImageTour
             OutputWidth.Value = OutputHeight.Value = initialFrameSize;
 
             InitLinesAnimation();
-            var initialFramePosX = ((width - initialFrameSize) / 2);
+            var initialFramePosX = (width - initialFrameSize) / 2;
             var initialFramePosY = (height - initialFrameSize) / 2;
             AddTransitionKeyFrames(initialFramePosX, initialFramePosY, initialFrameSize, initialFrameSize);
         }
