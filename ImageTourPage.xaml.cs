@@ -1001,6 +1001,10 @@ namespace ImageTour
             else transition.End = currentTime;
         }
 
+        private void StepBackClicked(object sender, RoutedEventArgs e) => Video.MediaPlayer.StepBackwardOneFrame();
+
+        private void StepForwardClicked(object sender, RoutedEventArgs e) => Video.MediaPlayer.StepForwardOneFrame();
+
         private void OutputSizeChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
         {
             foreach (var keyframeElement in frameProps.Keys)

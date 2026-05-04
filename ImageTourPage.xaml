@@ -64,7 +64,18 @@
             </Canvas>
         </Grid>
         <timeline:VideoControls Grid.Row="1" Grid.Column="0" Height="50" MediaPlayer="{x:Bind Video.MediaPlayer}" CurrentTimeEditable="True" ShowFractionalSeconds="True"
-                                Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}}" Margin="10,0"/>
+                                Visibility="{x:Bind isVideo, Converter={StaticResource BoolToVisibilityConverter}}" Margin="10,0">
+            <timeline:VideoControls.BetweenPlayAndProgress>
+                <StackPanel Spacing="5" Orientation="Horizontal">
+                    <Button ToolTipService.ToolTip="Previous frame" Click="StepBackClicked">
+                        <FontIcon Glyph="&#xE973;" />
+                    </Button>
+                    <Button ToolTipService.ToolTip="Next frame" Click="StepForwardClicked">
+                        <FontIcon Glyph="&#xE974;" />
+                    </Button>
+                </StackPanel>
+            </timeline:VideoControls.BetweenPlayAndProgress>
+        </timeline:VideoControls>
         <controls:ProcessManager Grid.Row="2" x:Name="ProcessManager" Grid.Column="0" State="{x:Bind viewModel.State, Mode=TwoWay}" Padding="10"
                                  Processor="{x:Bind tourProcessor}" HardwareSelector="{x:Bind HardwareSelector}" OnlyPrimary="{x:Bind viewModel.SelectedGenerationMethod.IsSingleRun, Mode=OneWay}"/>
         <Grid Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" Padding="10">
