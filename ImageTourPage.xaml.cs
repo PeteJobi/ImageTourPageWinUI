@@ -1025,6 +1025,7 @@ namespace ImageTour
         private void FrameXChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
         {
             if (userIsHandlingFrames || double.IsNaN(args.OldValue)) return;
+            if (!sender.IsLoaded) return; //For some reason, when a keyFrame gets deleted and its element removed, the DoubleFormatter gets triggered for X NumberBox if the value is not already rounded, and sender.IsLoaded is false in that case, so this is a workaround to prevent crashes from that
             var keyframe = (KeyFrame)sender.DataContext;
             if (keyframe.X == args.NewValue) return;
             keyframe.X = args.NewValue;
