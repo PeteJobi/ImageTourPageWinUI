@@ -463,8 +463,10 @@ namespace ImageTour
             keyFrameToElement.Add(startFrame, startKeyFrameElement);
             var endKeyFrameElement = AddNewKeyFrameElement(startFrame.X, startFrame.Y, width, height);// Add it at startFrame position...
             resizer.PositionElement(endKeyFrameElement, x, y);// ...then move it to intended position to keep it in bounds
-            var endFrame = new KeyFrame(resizer.GetElementLeft(endKeyFrameElement), resizer.GetElementTop(endKeyFrameElement),
-                startFrame.Width, startFrame.Height, lastKeyFrame.Number + 2);
+            var roundedLeft = double.Round(resizer.GetElementLeft(endKeyFrameElement));
+            var roundedTop = double.Round(resizer.GetElementTop(endKeyFrameElement));
+            resizer.PositionElement(endKeyFrameElement, roundedLeft, roundedTop);
+            var endFrame = new KeyFrame(roundedLeft, roundedTop, startFrame.Width, startFrame.Height, lastKeyFrame.Number + 2);
             keyFrameToElement.Add(endFrame, endKeyFrameElement);
             var endKeyFrameProps = new KeyFrameProps
             {
@@ -871,7 +873,8 @@ namespace ImageTour
             var lastKeyFrame = transitions.Last().EndKeyFrame;
             var dummyFrame = AddNewKeyFrameElement(lastKeyFrame.X, lastKeyFrame.Y, lastKeyFrame.Width, lastKeyFrame.Height);// Add it at lastKeyFrame position...
             resizer.PositionElement(dummyFrame, _lastCanvasPressedPoint.X, _lastCanvasPressedPoint.Y);// ...then move it to intended position to keep it in bounds
-            var (left, top) = (resizer.GetElementLeft(dummyFrame), resizer.GetElementTop(dummyFrame));// Get the new position after moving...
+            var (left, top) = (double.Round(resizer.GetElementLeft(dummyFrame)), double.Round(resizer.GetElementTop(dummyFrame)));// Get the rounded new position after moving...
+            resizer.PositionElement(dummyFrame, left, top); // ...repositioning it again at rounded coordinates...
             resizer.RemoveElement(dummyFrame);// ...and remove the dummy frame
             AddTransitionKeyFrames(left, top, lastKeyFrame.Width, lastKeyFrame.Height);
         }
@@ -1025,7 +1028,6 @@ namespace ImageTour
         private void FrameXChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
         {
             if (userIsHandlingFrames || double.IsNaN(args.OldValue)) return;
-            if (!sender.IsLoaded) return; //For some reason, when a keyFrame gets deleted and its element removed, the DoubleFormatter gets triggered for X NumberBox if the value is not already rounded, and sender.IsLoaded is false in that case, so this is a workaround to prevent crashes from that
             var keyframe = (KeyFrame)sender.DataContext;
             if (keyframe.X == args.NewValue) return;
             keyframe.X = args.NewValue;
