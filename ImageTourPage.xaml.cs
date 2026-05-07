@@ -338,7 +338,6 @@ namespace ImageTour
 
         private void SizeRetrieved(double width, double height)
         {
-            //Todo: Delete existing frames and transitions. For some reason, Video_OnSizeChanged() gets called multiple times when loading a video, and we only want to initialize once.
             ContentCanvas.Width = width;
             ContentCanvas.Height = height;
             const int defaultSize = 500;
