@@ -193,7 +193,8 @@ namespace ImageTourPage
                         $":'min(max(0, ({y1}+{yChange}*(t/{d}))*{heightFactor}), (ih*{heightFactor})-{outputHeight})'" +
                         $":exact=1,scale={outputWidth}:{outputHeight}:flags=lanczos+accurate_rnd,setsar=1";
                     var (hwDownArgs, hwUpArgs) = isVideo ? GpuInfo.FilterParams(gpuInfo, gpuPixelFormat) : (string.Empty, string.Empty);
-                    vTrimScaleCropBuilder.Append($"[0:v]{hwDownArgs}format=rgb24,fps={fps},trim={trim},scale={scale},crop={crop}{hwUpArgs}[v{i}];");
+                    var rgbFormat = gpuInfo == null ? string.Empty : "format=rgb24,"; //format=rgb24 increases performance on GPUs
+                    vTrimScaleCropBuilder.Append($"[0:v]{hwDownArgs}{rgbFormat}fps={fps},trim={trim},scale={scale},crop={crop}{hwUpArgs}[v{i}];");
                     vConcatBuilder.Append($"[v{i}]");
                 }
 
