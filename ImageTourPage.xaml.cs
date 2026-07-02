@@ -338,12 +338,11 @@ namespace ImageTour
 
         private void SizeRetrieved(double width, double height)
         {
-            //Todo: Delete existing frames and transitions. For some reason, Video_OnSizeChanged() gets called multiple times when loading a video, and we only want to initialize once.
             ContentCanvas.Width = width;
             ContentCanvas.Height = height;
             const int defaultSize = 500;
-            var canvasWiderThanView = FitCanvasToView();
-            var initialFrameSize = (int)Math.Min(defaultSize, (canvasWiderThanView ? height : width) - 20);
+            FitCanvasToView();
+            var initialFrameSize = (int)Math.Min(defaultSize, (width > height ? height : width) - 20);
             OutputWidth.Value = OutputHeight.Value = initialFrameSize;
 
             InitLinesAnimation();
@@ -352,9 +351,8 @@ namespace ImageTour
             AddTransitionKeyFrames(initialFramePosX, initialFramePosY, initialFrameSize, initialFrameSize);
         }
 
-        private bool FitCanvasToView()
+        private void FitCanvasToView()
         {
-            bool canvasWiderThanView;
             double panX, panY, zoom;
             if (CanvasContainer.ActualWidth / CanvasContainer.ActualHeight < ContentCanvas.Width / ContentCanvas.Height)
             {
@@ -362,7 +360,6 @@ namespace ImageTour
                 var scaledHeight = CanvasContainer.ActualWidth * ContentCanvas.Height / ContentCanvas.Width;
                 panY = (CanvasContainer.ActualHeight - scaledHeight) / 2; // Center vertically
                 panX = 0;
-                canvasWiderThanView = true;
             }
             else
             {
@@ -370,10 +367,8 @@ namespace ImageTour
                 var scaledWidth = CanvasContainer.ActualHeight * ContentCanvas.Width / ContentCanvas.Height;
                 panX = (CanvasContainer.ActualWidth - scaledWidth) / 2; // Center horizontally
                 panY = 0;
-                canvasWiderThanView = false;
             }
             AnimateTransform(panX, panY, zoom);
-            return canvasWiderThanView;
         }
 
         private void InitLinesAnimation()

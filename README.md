@@ -4,7 +4,7 @@ This provides a reuseable WinUI 3 page with an interface that allows for touring
 <img width="1787" height="1014" alt="Screenshot 2025-09-01 163707" src="https://github.com/user-attachments/assets/0a467080-326a-451e-8903-86e8fb08fe9e" />
 
 # How to use
-This library depends on [DraggerResizerWinUI](https://github.com/PeteJobi/DraggerResizerWinUI). Include both libraries into your WinUI solution and reference them in your WinUI project. Then navigate to the **ImageTourPage** when the user requests for it, passing a **TourProps** object as parameter.
+This library depends on [DraggerResizerWinUI](https://github.com/PeteJobi/DraggerResizerWinUI), and for videos, [TextToTimeSpanWinUI](https://github.com/PeteJobi/TextToTimeSpanWinUI) and [TimelineWinUI](https://github.com/PeteJobi/TimelineWinUI). Include both libraries into your WinUI solution and reference them in your WinUI project. Then navigate to the **ImageTourPage** when the user requests for it, passing a **TourProps** object as parameter.
 The **TourProps** object should contain the path to ffmpeg, the path to the media file, and optionally, the full name of the Page type to navigate back to when the user is done. If this last parameter is provided, you can get the path to the file that was generated on the Image Tour page. If not, the user will be navigated back to whichever page called the Image Tour page and there'll be no parameters. 
 ```
 private void GoToTour(){
