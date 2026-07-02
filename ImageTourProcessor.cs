@@ -29,6 +29,7 @@ namespace ImageTourPage
         private int[] frameCountsPerTransition;
         private bool dontDeleteFrames;
         private bool isVideo;
+        private bool hasAudio;
         private bool isGeneratingFrames;
         private bool isPaused;
         private bool isCanceled;
@@ -140,10 +141,10 @@ namespace ImageTourPage
                     leftTextPrimary.Report(string.Empty);
                     rightTextPrimary.Report("Merging frames...");
 
-                    var audioArgs = isVideo ? $"-filter_complex \"{GetAudioComplexFilter(true)}\"  -map \"[outA]\"" : string.Empty;
+                    var audioArgs = isVideo && hasAudio ? $"-filter_complex \"{GetAudioComplexFilter(true)}\"  -map \"[outA]\" -c:a aac" : string.Empty;
                     var currGpu = gpuInfo;
                     DisableHardwareAccel(); //Disable hardware acceleration
-                    await StartFfmpegTranscodingProcess([$"{folder}/frame%08d.png", inputPath], GetOutputName(inputPath), 18, null, $"-r {fps}", $"-map 0:v {audioArgs} -c:a aac -vf scale=out_color_matrix=bt709,format=yuv420p", (_, _, _, currentFrame) =>
+                    await StartFfmpegTranscodingProcess([$"{folder}/frame%08d.png", inputPath], GetOutputName(inputPath), 18, null, $"-r {fps}", $"-map 0:v {audioArgs} -vf scale=out_color_matrix=bt709,format=yuv420p", (_, _, _, currentFrame) =>
                     {
                         RecordMergeProgress(currentFrame);
                     });
@@ -196,8 +197,8 @@ namespace ImageTourPage
                     vConcatBuilder.Append($"[v{i}]");
                 }
 
-                var audioFilter = isVideo ? GetAudioComplexFilter(false) : string.Empty;
-                var audioArgs = isVideo ? " -map \"[outA]\"" : string.Empty;
+                var audioFilter = isVideo && hasAudio ? GetAudioComplexFilter(false) : string.Empty;
+                var audioArgs = isVideo && hasAudio ? " -map \"[outA]\" -c:a aac" : string.Empty;
                 var filterComplex = $"{vTrimScaleCropBuilder}{vConcatBuilder}concat=n={transitions.Length}:v=1:a=0[outV];{audioFilter}";
 
                 leftTextPrimary.Report(string.Empty);
@@ -291,12 +292,18 @@ namespace ImageTourPage
             {
                 if (string.IsNullOrWhiteSpace(args.Data)) return;
                 //Debug.WriteLine(args.Data);
+                logger.Log(args.Data);
                 if (totalWidth + totalHeight == 0)
                 {
-                    MatchCollection matchCollection = Regex.Matches(args.Data, @"\s*Stream #0:0.+?: .+, (\d+)x(\d+).+");
+                    var matchCollection = Regex.Matches(args.Data, @"\s*Stream #0:(\d+).*?: Video.*, (\d+)x(\d+).+");
                     if (matchCollection.Count == 0) return;
-                    totalWidth = int.Parse(matchCollection[0].Groups[1].Value);
-                    totalHeight = int.Parse(matchCollection[0].Groups[2].Value);
+                    totalWidth = int.Parse(matchCollection[0].Groups[2].Value);
+                    totalHeight = int.Parse(matchCollection[0].Groups[3].Value);
+                }
+                if(!hasAudio)
+                {
+                    var matchCollection = Regex.Matches(args.Data, @"\s*Stream #0:(\d+).*?: Audio.+");
+                    hasAudio = matchCollection.Count > 0;
                 }
             });
 
