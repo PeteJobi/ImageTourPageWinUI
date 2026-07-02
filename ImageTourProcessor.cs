@@ -208,7 +208,7 @@ namespace ImageTourPage
                 {
                     EnableHardwareDecoding(isVideo);
                     await StartFfmpegTranscodingProcessDefaultQuality([inputPath], GetOutputName(inputPath), isVideo ? string.Empty : "-loop 1",
-                        $"-/filter_complex pipe:0 -map \"[outV]\"{audioArgs} -c:a aac",
+                        $"-/filter_complex pipe:0 -map \"[outV]\"{audioArgs} -c:a aac {(isVideo ? string.Empty : "-pix_fmt yuv420p")}",
                         (_, _, _, currentFrame) => RecordSingleRunProgress(currentFrame),
                         intermediateHandler: async process =>
                         {
@@ -228,13 +228,6 @@ namespace ImageTourPage
                 }
             }
         }
-
-        //public bool MediaIsVideo(string mediaPath)
-        //{
-        //    if (!File.Exists(mediaPath)) return false;
-        //    var extension = Path.GetExtension(mediaPath).ToLowerInvariant();
-        //    return extension is ".mp4" or ".mkv" or ".avi" or ".mov" or ".wmv" or ".flv" or ".webm" or ".mpeg" or ".mpg";
-        //}
 
         bool ValidateKeyFrame(KeyFrame keyFrame)
         {
