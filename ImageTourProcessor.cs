@@ -141,13 +141,15 @@ namespace ImageTourPage
                     leftTextPrimary.Report(string.Empty);
                     rightTextPrimary.Report("Merging frames...");
 
-                    var audioArgs = isVideo && hasAudio ? $"-filter_complex \"{GetAudioComplexFilter(true)}\"  -map \"[outA]\" -c:a aac" : string.Empty;
+                    var audioArgs = isVideo && hasAudio ? $"-filter_complex \"{GetAudioComplexFilter(true)}\" -map \"[outA]\" -c:a aac" : string.Empty;
                     var currGpu = gpuInfo;
                     DisableHardwareAccel(); //Disable hardware acceleration
-                    await StartFfmpegTranscodingProcess([$"{folder}/frame%08d.png", inputPath], GetOutputName(inputPath), 18, null, $"-r {fps}", $"-map 0:v {audioArgs} -vf scale=out_color_matrix=bt709,format=yuv420p", (_, _, _, currentFrame) =>
-                    {
-                        RecordMergeProgress(currentFrame);
-                    });
+                    await Ffmpeg().Inputs($"{folder}/frame%08d.png", inputPath).Output(GetOutputName(inputPath))
+                        .ArgumentsBeforeInput($"-r {fps}")
+                        .ArgumentsAfterInput($"-map 0:v {audioArgs}")
+                        .VideoFilter("scale=out_color_matrix=bt709,format=yuv420p")
+                        .ProgressHandler((_, _, _, currentFrame) => RecordMergeProgress(currentFrame))
+                        .StartTranscodingProcess();
                     EnableHardwareAccelParams(currGpu);
                     if (HasBeenKilled())
                     {
@@ -208,16 +210,18 @@ namespace ImageTourPage
 
                 try
                 {
-                    EnableHardwareDecoding(isVideo);
-                    await StartFfmpegTranscodingProcessDefaultQuality([inputPath], GetOutputName(inputPath), isVideo ? string.Empty : "-loop 1",
-                        $"-/filter_complex pipe:0 -map \"[outV]\"{audioArgs} -c:a aac {(isVideo ? string.Empty : "-pix_fmt yuv420p")}",
-                        (_, _, _, currentFrame) => RecordSingleRunProgress(currentFrame),
-                        intermediateHandler: async process =>
+                    await Ffmpeg().Input(inputPath).Output(GetOutputName(inputPath))
+                        .ArgumentsBeforeInput(isVideo ? string.Empty : "-loop 1")
+                        .ArgumentsAfterInput($"-/filter_complex pipe:0 -map \"[outV]\"{audioArgs} {(isVideo ? string.Empty : "-pix_fmt yuv420p")}")
+                        .DisableHardwareEncoding(!isVideo)
+                        .ProgressHandler((_, _, _, currentFrame) => RecordSingleRunProgress(currentFrame))
+                        .IntermediateHandler(async process =>
                         {
                             logger.Log($"FilterComplex: {filterComplex}");
                             await process.StandardInput.WriteAsync(filterComplex);
                             await process.StandardInput.FlushAsync();
-                        });
+                        })
+                        .StartTranscodingProcess();
                     if (HasBeenKilled())
                     {
                         ProcessCanceled();
@@ -289,10 +293,9 @@ namespace ImageTourPage
         {
             if(!useSingleRunMethod) folder = GetOutputFolder(inputPath);
 
-            await StartFfmpegProcess($"-i \"{inputPath}\"", (sender, args) =>
+            await Ffmpeg().Input(inputPath).NoOutput().ErrorHandler((sender, args) =>
             {
                 if (string.IsNullOrWhiteSpace(args.Data)) return;
-                //Debug.WriteLine(args.Data);
                 logger.Log(args.Data);
                 if (totalWidth + totalHeight == 0)
                 {
@@ -306,7 +309,7 @@ namespace ImageTourPage
                     var matchCollection = Regex.Matches(args.Data, @"\s*Stream #0:(\d+).*?: Audio.+");
                     hasAudio = matchCollection.Count > 0;
                 }
-            });
+            }).StartPlainProcess();
 
             for (var i = 0; i < transitions.Length; i++)
             {
@@ -373,7 +376,10 @@ namespace ImageTourPage
         async Task GenerateFrame(KeyFrame keyFrame, int frameNumber, TimeSpan frameTimePoint = default)
         {
             var seek = frameTimePoint == TimeSpan.Zero ? string.Empty : $"-ss {frameTimePoint} ";
-            await StartFfmpegProcess($"-i \"{inputPath}\" {seek}-frames:v 1 -vf \"crop={keyFrame.Width}:{keyFrame.Height}:{keyFrame.X}:{keyFrame.Y}:exact=1,scale=w={width}:h={height}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp,format=rgb24,setsar=1\" \"{folder}/frame{frameNumber:D8}.png\"");
+            await Ffmpeg().Input(inputPath).Output($"{folder}/frame{frameNumber:D8}.png")
+                .ArgumentsAfterInput($"{seek}-frames:v 1")
+                .VideoFilter($"crop={keyFrame.Width}:{keyFrame.Height}:{keyFrame.X}:{keyFrame.Y}:exact=1,scale=w={width}:h={height}:flags=lanczos+accurate_rnd+full_chroma_int+full_chroma_inp,format=rgb24,setsar=1")
+                .StartPlainProcess();
         }
 
         void CopyFrame(int frameNumber, int amountOfCopies)
