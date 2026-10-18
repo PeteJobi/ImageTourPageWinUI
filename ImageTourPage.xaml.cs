@@ -327,7 +327,12 @@ namespace ImageTour
 
         private void Video_OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (transitions.Any()) return;
+            if (transitions.Any())
+            {
+                ContentCanvas.Width = e.NewSize.Width;
+                ContentCanvas.Height = e.NewSize.Height;
+                return;
+            }
             SizeRetrieved(e.NewSize.Width, e.NewSize.Height);
         }
 
