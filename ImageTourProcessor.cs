@@ -24,7 +24,6 @@ namespace ImageTourPage
         private int totalHeight;
         private double fps;
         private int totalFrames;
-        private int currentTransition;
         private Transition[] transitions;
         private int[] frameCountsPerTransition;
         private bool dontDeleteFrames;
@@ -92,40 +91,37 @@ namespace ImageTourPage
 
             async Task FrameExtractionMethod()
             {
-                var lastKeyFrame = new KeyFrame();
                 var lastFrame = 0;
-                var lastEndTime = TimeSpan.MinValue;
-
                 try
                 {
                     isGeneratingFrames = true;
                     rightTextPrimary.Report("Generating frames...");
-                    foreach (var transition in transitions)
+                    for (var currentTransition = 0; currentTransition < transitions.Length; currentTransition++)
                     {
-                        rightTextPrimary.Report($"{currentTransition} / {transitions.Length}");
-                        var startNum = currentTransition * 2 - 1;
+                        var transition = transitions[currentTransition];
+                        rightTextPrimary.Report($"{currentTransition + 1} / {transitions.Length}");
+                        var startNum = currentTransition * 2 + 1;
                         leftTextPrimary.Report($"{startNum} -> {startNum + 1}");
+                        var firstFrameDone = false;
 
-                        if (!Equals(transition.StartKeyFrame, lastKeyFrame) || (isVideo && transition.Start != lastEndTime))
+                        if (currentTransition == 0 || !TransitionsConnected(transitions[currentTransition - 1], transition))
                         {
                             lastFrame++;
                             await GenerateFrame(transition.StartKeyFrame, lastFrame, transition.Start); //Generate first frame
-                            RecordFrameGenerationProgress(lastFrame, 1);
+                            RecordFrameGenerationProgress(lastFrame, currentTransition, 1);
+                            firstFrameDone = true;
                             await CheckPause();
                             var canceled = CheckCanceled();
                             if (canceled) return;
                         }
 
-                        var transitionFrameCount = await ProcessTransitionFrames(transition, lastFrame);
+                        var transitionFrameCount = await ProcessTransitionFrames(currentTransition, lastFrame, firstFrameDone);
                         if (transitionFrameCount == -1)
                         {
                             CheckCanceled();
                             return;
                         }
                         lastFrame += transitionFrameCount;
-                        lastKeyFrame = transition.EndKeyFrame;
-                        lastEndTime = transition.End;
-                        currentTransition++;
                     }
                     isGeneratingFrames = false;
                 }
@@ -145,7 +141,7 @@ namespace ImageTourPage
                     var currGpu = gpuInfo;
                     DisableHardwareAccel(); //Disable hardware acceleration
                     await Ffmpeg().Inputs($"{folder}/frame%08d.png", inputPath).Output(GetOutputName(inputPath))
-                        .ArgumentsBeforeInput($"-r {fps}")
+                        .ArgumentsBeforeInput($"-r {fps}") //Can't use Fps() for this because it will add the -r after the input
                         .ArgumentsAfterInput($"-map 0:v {audioArgs}")
                         .VideoFilter("scale=out_color_matrix=bt709,format=yuv420p")
                         .ProgressHandler((_, _, _, currentFrame) => RecordMergeProgress(currentFrame))
@@ -235,12 +231,12 @@ namespace ImageTourPage
             }
         }
 
-        bool ValidateKeyFrame(KeyFrame keyFrame)
+        private bool ValidateKeyFrame(KeyFrame keyFrame)
         {
             return keyFrame is { X: >= 0, Y: >= 0, Width: > 1, Height: > 1 } && keyFrame.X + keyFrame.Width <= totalWidth && keyFrame.Y + keyFrame.Height <= totalHeight;
         }
 
-        string GetAudioComplexFilter(bool secondInput)
+        private string GetAudioComplexFilter(bool secondInput)
         {
             var ranges = new List<(TimeSpan start, TimeSpan end)>();
             foreach (var transition in transitions)
@@ -264,9 +260,9 @@ namespace ImageTourPage
             return $"{atrimBuilder}{concatBuilder}concat=n={ranges.Count}:v=0:a=1[outA]";
         }
 
-        static string TimeSpanString(TimeSpan timeSpan) => timeSpan.ToString(@"hh\:mm\:ss\.fff").Replace(":", @"\\:");
+        private static string TimeSpanString(TimeSpan timeSpan) => timeSpan.ToString(@"hh\:mm\:ss\.fff").Replace(":", @"\\:");
 
-        string GetOutputFolder(string path)
+        private static string GetOutputFolder(string path)
         {
             var inputName = Path.GetFileNameWithoutExtension(path);
             var parentFolder = Path.GetDirectoryName(path) ?? throw new NullReferenceException("The specified path is null");
@@ -289,7 +285,7 @@ namespace ImageTourPage
             return outputFile;
         }
 
-        async Task Setup(bool useSingleRunMethod)
+        private async Task Setup(bool useSingleRunMethod)
         {
             if(!useSingleRunMethod) folder = GetOutputFolder(inputPath);
 
@@ -315,24 +311,32 @@ namespace ImageTourPage
             {
                 var transition = transitions[i];
                 var frameCount = GetTransitionFrameCount(transition);
-                frameCount += i == 0 || !Equals(transition.StartKeyFrame, transitions[i - 1].EndKeyFrame) ? 1 : 0; //Add one for the first frame of each transition if it's not the same as the last frame of the previous transition
+                if (useSingleRunMethod)
+                {
+                    totalFrames += frameCount;
+                    continue;
+                }
+                frameCount -= i != 0 && TransitionsConnected(transitions[i - 1], transition) ? 1 : 0; //If this transition is connected to previous transition, subtract 1
                 frameCountsPerTransition[i] = frameCount;
                 totalFrames += frameCount;
             }
-
-            currentTransition = 1;
         }
 
-        void CleanUp()
+        private void CleanUp()
         {
             if (!dontDeleteFrames) Directory.Delete(folder, true);
         }
 
-        int GetTransitionFrameCount(Transition transition) => Convert.ToInt32(fps * transition.Duration.TotalSeconds) - 1;
+        private int GetTransitionFrameCount(Transition transition) => Convert.ToInt32(fps * transition.Duration.TotalSeconds);
 
-        async Task<int> ProcessTransitionFrames(Transition transition, int totalFramesSoFar)
+        private bool TransitionsConnected(Transition firstTransition, Transition secondTransition) //If the last frame of firstTransition is the same as the first frame of secondTransition, both in time and position
+            => Equals(secondTransition.StartKeyFrame, firstTransition.EndKeyFrame) &&
+               (!isVideo || secondTransition.Start == firstTransition.End);
+
+        private async Task<int> ProcessTransitionFrames(int currentTransition, int totalFramesSoFar, bool firstFrameDone)
         {
-            var totalFramesExcludingFirst = (double)GetTransitionFrameCount(transition);
+            var transition = transitions[currentTransition];
+            var totalFramesExcludingFirst = (double)GetTransitionFrameCount(transition) - 1;
 
             var xChunk = (transition.EndKeyFrame.X - transition.StartKeyFrame.X) / totalFramesExcludingFirst;
             var yChunk = (transition.EndKeyFrame.Y - transition.StartKeyFrame.Y) / totalFramesExcludingFirst;
@@ -364,16 +368,25 @@ namespace ImageTourPage
                     if (Equals(currentShift, lastShift)) CopyFrame(totalFramesSoFar + i - 1, 1);
                     else await GenerateFrame(currentShift, totalFramesSoFar + i);
                 }
-                RecordFrameGenerationProgress(totalFramesSoFar + i, i + 1);
+                RecordFrameGenerationProgress(totalFramesSoFar + i, currentTransition, i + (firstFrameDone ? 1 : 0));
                 lastShift = currentShift;
                 await CheckPause();
                 if (isCanceled) return -1;
             }
 
             return (int)totalFramesExcludingFirst;
+
+            void CopyFrame(int frameNumber, int amountOfCopies)
+            {
+                var framePath = $"{folder}/frame{frameNumber:D8}.png";
+                for (var j = 1; j <= amountOfCopies; j++)
+                {
+                    File.Copy(framePath, $"{folder}/frame{frameNumber + j:D8}.png");
+                }
+            }
         }
 
-        async Task GenerateFrame(KeyFrame keyFrame, int frameNumber, TimeSpan frameTimePoint = default)
+        private async Task GenerateFrame(KeyFrame keyFrame, int frameNumber, TimeSpan frameTimePoint = default)
         {
             var seek = frameTimePoint == TimeSpan.Zero ? string.Empty : $"-ss {frameTimePoint} ";
             await Ffmpeg().Input(inputPath).Output($"{folder}/frame{frameNumber:D8}.png")
@@ -382,22 +395,13 @@ namespace ImageTourPage
                 .StartPlainProcess();
         }
 
-        void CopyFrame(int frameNumber, int amountOfCopies)
-        {
-            var framePath = $"{folder}/frame{frameNumber:D8}.png";
-            for (var j = 1; j <= amountOfCopies; j++)
-            {
-                File.Copy(framePath, $"{folder}/frame{frameNumber + j:D8}.png");
-            }
-        }
-
         public override Task Cancel()
         {
             isCanceled = true;
             return base.Cancel();
         }
 
-        async Task CheckPause()
+        private async Task CheckPause()
         {
             if (isPaused)
             {
@@ -409,27 +413,23 @@ namespace ImageTourPage
             }
         }
 
-        bool CheckCanceled()
+        private bool CheckCanceled()
         {
-            if (isCanceled)
-            {
-                isCanceled = false;
-                ProcessCanceled();
-                return true;
-            }
-            return false;
+            if (!isCanceled) return false;
+            isCanceled = false;
+            ProcessCanceled();
+            return true;
         }
 
-        void ProcessCanceled()
+        private void ProcessCanceled()
         {
             CleanUp();
-            var errorMessage = "Operation was canceled";
-            error(errorMessage);
+            error("Operation was canceled");
         }
 
-        void RecordFrameGenerationProgress(int currentFrame, int currentTransitionFrame)
+        private void RecordFrameGenerationProgress(int currentFrame, int currentTransition, int currentTransitionFrame)
         {
-            var totalTransitionFrames = frameCountsPerTransition[currentTransition - 1];
+            var totalTransitionFrames = frameCountsPerTransition[currentTransition];
             progressPrimary.Report((double)currentFrame / totalFrames * ProgressMax);
             centerTextPrimary.Report($"{currentFrame} / {totalFrames}");
             progressSecondary.Report((double)currentTransitionFrame / totalTransitionFrames * ProgressMax);
