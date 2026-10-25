@@ -83,26 +83,19 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             <TextBlock Name="MediaName" Style="{StaticResource TitleTextBlockStyle}" Margin="0,0,0,10"/>
-            <Button Grid.Row="1" HorizontalAlignment="Center" Click="GoBack">
-                <StackPanel Orientation="Horizontal">
-                    <FontIcon Glyph="&#xE72B;" Margin="0,0,10,0" />
-                    <TextBlock VerticalAlignment="Center">Go back</TextBlock>
-                </StackPanel>
-            </Button>
-            <RelativePanel Grid.Row="2" Margin="0,10">
+            <RelativePanel Grid.Row="1" Margin="0,10">
                 <NumberBox Header="Output Width" Width="140" Name="OutputWidth" ValueChanged="OutputSizeChanged" SpinButtonPlacementMode="Compact" LargeChange="20"/>
                 <NumberBox Header="Output Height" Width="140" Name="OutputHeight" ValueChanged="OutputSizeChanged" SpinButtonPlacementMode="Compact" LargeChange="20" RelativePanel.AlignHorizontalCenterWithPanel="True"/>
                 <NumberBox Header="Output Frame Rate" Width="140" Value="24" Name="OutputFrameRate" SpinButtonPlacementMode="Compact" LargeChange="20" RelativePanel.AlignRightWithPanel="True"/>
             </RelativePanel>
-            <CheckBox Grid.Row="3" Name="LockAspectRatioCheckBox" Content="Lock Aspect Ratio" Checked="LockAspectRatioChanged" Unchecked="LockAspectRatioChanged"/>
-            <ListView Grid.Row="4" ItemsSource="{x:Bind transitions}" Margin="0,10" SelectionMode="None">
+            <CheckBox Grid.Row="2" Name="LockAspectRatioCheckBox" Content="Lock Aspect Ratio" Checked="LockAspectRatioChanged" Unchecked="LockAspectRatioChanged"/>
+            <ListView Grid.Row="3" ItemsSource="{x:Bind transitions}" Margin="0,10" SelectionMode="None">
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem" BasedOn="{StaticResource DefaultListViewItemStyle}">
                         <Setter Property="Margin" Value="0,5" />
@@ -171,7 +164,7 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
-            <StackPanel Grid.Row="5" Margin="0,0,0,5" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
+            <StackPanel Grid.Row="4" Margin="0,0,0,5" Orientation="Horizontal" HorizontalAlignment="Center" Spacing="10">
                 <TextBlock VerticalAlignment="Center">Generation method:</TextBlock>
                 <ListView ItemsSource="{x:Bind generationMethods}" SelectedItem="{x:Bind viewModel.SelectedGenerationMethod, Mode=TwoWay}" IsEnabled="{x:Bind viewModel.BeforeOperation, Mode=OneWay}">
                     <ListView.ItemsPanel>
@@ -187,11 +180,11 @@
                     </ListView.ItemContainerStyle>
                 </ListView>
             </StackPanel>
-            <CheckBox Grid.Row="6" Name="DontDeleteFrames" Content="Don't delete extracted frames" Margin="0,0,0,5"
+            <CheckBox Grid.Row="5" Name="DontDeleteFrames" Content="Don't delete extracted frames" Margin="0,0,0,5"
                       Visibility="{x:Bind viewModel.SelectedGenerationMethod.IsSingleRun, Converter={StaticResource BoolToNegatedVisibilityConverter}, Mode=OneWay}"/>
-            <controls:HardwareSelector Grid.Row="6" Visibility="{x:Bind viewModel.SelectedGenerationMethod.IsSingleRun, Mode=OneWay}" Margin="0,0,0,5"
+            <controls:HardwareSelector Grid.Row="5" Visibility="{x:Bind viewModel.SelectedGenerationMethod.IsSingleRun, Mode=OneWay}" Margin="0,0,0,5"
                                        x:Name="HardwareSelector"/>
-            <Button Grid.Row="7" HorizontalAlignment="Stretch" Style="{StaticResource AccentButtonStyle}" Click="ProcessTour"
+            <Button Grid.Row="6" HorizontalAlignment="Stretch" Style="{StaticResource AccentButtonStyle}" Click="ProcessTour"
                     IsEnabled="{x:Bind viewModel.DuringOperation, Mode=OneWay, Converter={StaticResource BoolNegationConverter}}">
                 <Grid>
                     <StackPanel Orientation="Horizontal" Spacing="10">
