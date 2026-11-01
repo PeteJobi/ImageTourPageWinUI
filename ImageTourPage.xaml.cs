@@ -26,6 +26,7 @@ using Windows.Media.Playback;
 using WinUIShared.Controls;
 using WinUIShared.Enums;
 using WinUIShared.Helpers;
+using WinUIShared.Interfaces;
 using Orientation = DraggerResizer.Orientation;
 using Path = System.IO.Path;
 using Transition = ImageTourPage.Transition;
@@ -38,7 +39,7 @@ namespace ImageTour
     /// <summary>
     /// An empty page that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public sealed partial class ImageTourPage : Page
+    public sealed partial class ImageTourPage : Page, INavigablePage
     {
         private readonly DraggerResizer.DraggerResizer resizer;
         private Point _lastPoint, _lastCanvasPressedPoint;
@@ -1099,8 +1100,9 @@ namespace ImageTour
             var processTask = () => tourProcessor.Animate(mediaPath, isVideo, Convert.ToInt32(OutputWidth.Value), Convert.ToInt32(OutputHeight.Value),
                 OutputFrameRate.Value, transitionsToProcess, viewModel.SelectedGenerationMethod.IsSingleRun, DontDeleteFrames.IsChecked ?? false);
             outputFile = await ProcessManager.StartProcess(processTask);
+            return;
 
-            ImageTourProcessor.KeyFrame ModelToProcessorKeyframe(KeyFrame keyframe) => new()
+            static ImageTourProcessor.KeyFrame ModelToProcessorKeyframe(KeyFrame keyframe) => new()
             {
                 X = keyframe.X,
                 Y = keyframe.Y,
@@ -1109,12 +1111,13 @@ namespace ImageTour
             };
         }
 
-        private void GoBack(object sender, RoutedEventArgs e)
+        public bool GoBackRequested()
         {
-            if(isVideo) Video.MediaPlayer.Pause();
+            if (isVideo) Video.MediaPlayer.Pause();
             _ = tourProcessor.Cancel();
             if (navigateTo == null) Frame.GoBack();
             else Frame.NavigateToType(Type.GetType(navigateTo), outputFile, new FrameNavigationOptions { IsNavigationStackEnabled = false });
+            return true;
         }
     }
 
